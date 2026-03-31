@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "HydroTech",
+    "slug": "hydrotech",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/hydro.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0f1a",
+    "splash": {
+      "image": "./assets/images/hydro.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0f1a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hydrotech.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "HydroTech utilise votre position pour trouver les cours d'eau proches."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/hydro.png",
+        "backgroundColor": "#0a0f1a"
+      },
+      "package": "com.hydrotech.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/hydro.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "HydroTech utilise votre position pour trouver les cours d'eau proches."
+        }
+      ],
+      "react-native-ble-plx"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
