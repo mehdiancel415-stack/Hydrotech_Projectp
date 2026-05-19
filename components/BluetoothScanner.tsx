@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Device } from 'react-native-ble-plx';
+import type { Device } from 'react-native-ble-plx';
+import { connectToTurbine, scanForTurbines, stopScan } from '../BLEManager';
 import { TurbineData } from '../bleConfig';
-import { connectToTurbine, scanForTurbines, stopScan } from '../components/BLEManager';
 import { theme } from '../constants/theme';
 
 type Props = {
@@ -20,6 +20,7 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
   const [turbineName, setTurbineName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [lastData, setLastData] = useState<TurbineData | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
 
   const reset = () => {
     setState('idle');
@@ -28,6 +29,7 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
     setTurbineName('');
     setErrorMsg('');
     setLastData(null);
+    setIsDemo(false);
   };
 
   const handleClose = () => {
@@ -63,6 +65,15 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
     }, 16000);
   };
 
+  // === MODE DEMO: simule une turbine sans BLE ===
+  // Utile pour tester l'UI sans hardware (ESP32 absent, simulateur BLE indispo).
+  // Crée une fausse turbine "HydroTech-Demo" avec des valeurs initiales.
+  const startDemoConnect = () => {
+    setIsDemo(true);
+    setTurbineName('Turbine Démo');
+    setState('naming');
+  };
+
   const selectDevice = (device: Device) => {
     stopScan();
     setSelectedDevice(device);
@@ -71,8 +82,34 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
   };
 
   const confirmConnect = async () => {
-    if (!selectedDevice) return;
     Keyboard.dismiss();
+
+    if (isDemo) {
+      // Connexion simulée — pas de BLE réel
+      setState('connecting');
+      setTimeout(() => {
+        setState('connected');
+        setTimeout(() => {
+          const fakeData: TurbineData = {
+            voltage: 12.5 + Math.random(),
+            current: 1.0 + Math.random(),
+            power: 15 + Math.random() * 5,
+          };
+          onConnect(
+            {
+              id: `demo-${Date.now()}`,
+              name: turbineName.trim() || 'HydroTech-Demo',
+            },
+            fakeData,
+          );
+          reset();
+          onClose();
+        }, 600);
+      }, 800);
+      return;
+    }
+
+    if (!selectedDevice) return;
     setState('connecting');
 
     const connected = await connectToTurbine(
@@ -138,6 +175,12 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
                   <TouchableOpacity style={styles.primaryBtn} onPress={startScan}>
                     <Text style={styles.primaryBtnTxt}>Scanner les turbines</Text>
                   </TouchableOpacity>
+
+                  {/* MODE DEMO */}
+                  <TouchableOpacity style={styles.demoBtn} onPress={startDemoConnect}>
+                    <Text style={styles.demoTxt}>Utiliser une turbine de démo (sans BLE)</Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
                     <Text style={styles.cancelTxt}>Annuler</Text>
                   </TouchableOpacity>
@@ -199,15 +242,19 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
               {state === 'naming' && (
                 <View style={styles.stateContainer}>
                   <View style={styles.iconCircle}>
-                    <Text style={styles.iconTxt}>✏️</Text>
+                    <Text style={styles.iconTxt}>{isDemo ? '🧪' : '✏️'}</Text>
                   </View>
-                  <Text style={styles.stateTitle}>Nommer la turbine</Text>
+                  <Text style={styles.stateTitle}>
+                    {isDemo ? 'Mode démo' : 'Nommer la turbine'}
+                  </Text>
                   <Text style={styles.stateSub}>
-                    Donnez un nom pour retrouver facilement cette turbine
+                    {isDemo
+                      ? 'Aucun BLE — simulation pour tester l\'UI. Donnez un nom :'
+                      : 'Donnez un nom pour retrouver facilement cette turbine'}
                   </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder={selectedDevice?.name || 'HydroTech'}
+                    placeholder={isDemo ? 'Turbine Démo' : (selectedDevice?.name || 'HydroTech')}
                     placeholderTextColor={theme.textSecondary}
                     value={turbineName}
                     onChangeText={setTurbineName}
@@ -217,7 +264,7 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
                   />
                   <TouchableOpacity style={styles.primaryBtn} onPress={confirmConnect}>
                     <Text style={styles.primaryBtnTxt}>
-                      Connecter "{turbineName || selectedDevice?.name}"
+                      {isDemo ? 'Créer la turbine démo' : `Connecter "${turbineName || selectedDevice?.name}"`}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
@@ -232,9 +279,13 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
                   <View style={styles.iconCircle}>
                     <ActivityIndicator size="large" color={theme.accent} />
                   </View>
-                  <Text style={styles.stateTitle}>Connexion en cours...</Text>
+                  <Text style={styles.stateTitle}>
+                    {isDemo ? 'Création de la turbine démo...' : 'Connexion en cours...'}
+                  </Text>
                   <Text style={styles.stateSub}>
-                    Établissement de la connexion BLE avec {selectedDevice?.name}
+                    {isDemo
+                      ? 'Préparation des données simulées'
+                      : `Établissement de la connexion BLE avec ${selectedDevice?.name}`}
                   </Text>
                 </View>
               )}
@@ -246,7 +297,7 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
                     <Text style={styles.iconTxt}>✓</Text>
                   </View>
                   <Text style={[styles.stateTitle, { color: theme.success }]}>
-                    Connecté !
+                    {isDemo ? 'Démo prête !' : 'Connecté !'}
                   </Text>
                   <Text style={styles.stateSub}>Chargement de l'interface...</Text>
                 </View>
@@ -264,6 +315,9 @@ export default function BluetoothScanner({ visible, onClose, onConnect }: Props)
                   <Text style={styles.stateSub}>{errorMsg}</Text>
                   <TouchableOpacity style={styles.primaryBtn} onPress={startScan}>
                     <Text style={styles.primaryBtnTxt}>Réessayer</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.demoBtn} onPress={startDemoConnect}>
+                    <Text style={styles.demoTxt}>Utiliser une turbine de démo (sans BLE)</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
                     <Text style={styles.cancelTxt}>Annuler</Text>
@@ -302,6 +356,8 @@ const styles = StyleSheet.create({
   input: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 10, padding: 12, color: theme.textPrimary, fontSize: 14, width: '100%' },
   primaryBtn: { backgroundColor: '#0f2040', borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, alignItems: 'center', width: '100%' },
   primaryBtnTxt: { fontSize: 14, color: theme.accent, fontWeight: '500' },
+  demoBtn: { backgroundColor: 'rgba(212,140,46,0.08)', borderWidth: 0.5, borderColor: theme.warning, borderRadius: 12, padding: 12, alignItems: 'center', width: '100%' },
+  demoTxt: { fontSize: 12, color: theme.warning },
   cancelBtn: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 12, padding: 12, alignItems: 'center', width: '100%' },
   cancelTxt: { fontSize: 13, color: theme.textSecondary },
 });

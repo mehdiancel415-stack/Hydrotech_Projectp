@@ -1,35 +1,35 @@
-import { View, Text, StyleSheet, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity } from 'react-native';
+import {
+  View, Text, StyleSheet, Dimensions,
+  NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity,
+} from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useState } from 'react';
-import { theme } from '../constants/theme';
+import { theme, fontFamily, radius } from '../constants/theme';
+import BatteryRing from './BatteryRing';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = SCREEN_WIDTH - 48;
 
-type Battery = {
-  id: number;
-  name: string;
-  type: string;
-  capacity: number;
-  percentage: number;
-};
+type Battery = { id: number; name: string; type: string; capacity: number; percentage: number };
 
 type Props = {
   batteries: Battery[];
   onDelete?: (id: number) => void;
+  onEdit?: (battery: Battery) => void;
 };
 
-export default function BatteryCarousel({ batteries, onDelete }: Props) {
+export default function BatteryCarousel({ batteries, onDelete, onEdit }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
-    const index = Math.round(x / (CARD_WIDTH + 12));
-    setActiveIndex(index);
+    setActiveIndex(Math.round(x / (CARD_WIDTH + 12)));
   };
 
   if (batteries.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={styles.emptyCard}>
+        <Text style={styles.emptyIcon}>🔋</Text>
         <Text style={styles.emptyTxt}>Aucune batterie ajoutée</Text>
       </View>
     );
@@ -43,7 +43,6 @@ export default function BatteryCarousel({ batteries, onDelete }: Props) {
       </View>
       <ScrollView
         horizontal
-        pagingEnabled={false}
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH + 12}
         snapToAlignment="start"
@@ -51,45 +50,59 @@ export default function BatteryCarousel({ batteries, onDelete }: Props) {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled
       >
         {batteries.map((b) => {
-          const color = b.percentage > 60 ? theme.accent : b.percentage > 30 ? theme.warning : theme.danger;
+          const color =
+            b.percentage >= 80 ? theme.success :
+            b.percentage >= 40 ? theme.accent :
+            b.percentage >= 20 ? theme.warning :
+            theme.danger;
           const remaining = (b.capacity * (1 - b.percentage / 100)).toFixed(1);
-          const totalH = (b.capacity * (1 - b.percentage / 100)) / (18 / 12);
-          const etaH = Math.floor(totalH);
-          const etaM = Math.round((totalH - etaH) * 60);
+          const isFull = b.percentage >= 100;
+
           return (
             <View key={b.id} style={styles.card}>
-              <View style={styles.cardTop}>
-                <View>
-                  <Text style={styles.battName}>{b.name}</Text>
-                  <Text style={styles.battType}>{b.type} · {b.capacity}Ah</Text>
+              {/* Accent bar top */}
+              <View style={[styles.accentBar, { backgroundColor: color }]} />
+
+              <View style={styles.cardBody}>
+                {/* Left: ring */}
+                <BatteryRing percentage={b.percentage} size={72} strokeWidth={7} showLabel />
+
+                {/* Right: info */}
+                <View style={styles.info}>
+                  <Text style={styles.battName} numberOfLines={1}>{b.name}</Text>
+                  <Text style={styles.battType}>{b.type} · {b.capacity} Ah</Text>
+
+                  <View style={styles.tags}>
+                    <View style={[styles.tag, { borderColor: color + '55', backgroundColor: color + '10' }]}>
+                      <Text style={[styles.tagTxt, { color }]}>
+                        {isFull ? '✓ Pleine' : `${remaining} Ah restants`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.actions}>
+                    {onEdit && (
+                      <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(b)} activeOpacity={0.75}>
+                        <Text style={styles.editTxt}>Modifier</Text>
+                      </TouchableOpacity>
+                    )}
+                    {onDelete && (
+                      <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(b.id)} activeOpacity={0.75}>
+                        <Text style={styles.deleteTxt}>✕</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-                <Text style={[styles.battPct, { color }]}>{Math.round(b.percentage)}%</Text>
               </View>
-              <View style={styles.barWrap}>
-                <View style={[styles.bar, { width: `${b.percentage}%` as any, backgroundColor: color }]} />
-              </View>
-              <View style={styles.tags}>
-                <View style={styles.tag}>
-                  <Text style={styles.tagTxt}>{remaining} Ah restants</Text>
-                </View>
-                <View style={styles.tag}>
-                  <Text style={styles.tagTxt}>~{etaH}h {etaM}min</Text>
-                </View>
-              </View>
-              {onDelete && (
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => onDelete(b.id)}
-                >
-                  <Text style={styles.deleteTxt}>Supprimer la batterie</Text>
-                </TouchableOpacity>
-              )}
             </View>
           );
         })}
       </ScrollView>
+
+      {/* Dots */}
       <View style={styles.dots}>
         {batteries.map((_, i) => (
           <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
@@ -100,26 +113,58 @@ export default function BatteryCarousel({ batteries, onDelete }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 8, marginBottom: 10 },
+  container: { gap: 8, marginBottom: 12 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: { fontSize: 9, letterSpacing: 2, color: theme.textSecondary, textTransform: 'uppercase' },
-  counter: { fontSize: 10, color: theme.textSecondary },
+  label: {
+    fontFamily: fontFamily.semibold, fontSize: 11,
+    letterSpacing: 1.8, color: theme.textSecondary, textTransform: 'uppercase',
+  },
+  counter: { fontFamily: fontFamily.monoRegular, fontSize: 11, color: theme.textMuted },
   scrollContent: { paddingRight: 16, gap: 12 },
-  card: { width: CARD_WIDTH, backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 12, padding: 12 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  battName: { fontSize: 13, color: theme.textPrimary, fontWeight: '500' },
-  battType: { fontSize: 10, color: theme.textSecondary, marginTop: 2 },
-  battPct: { fontSize: 22, fontWeight: '500' },
-  barWrap: { height: 5, backgroundColor: theme.bg, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
-  bar: { height: '100%', borderRadius: 3 },
-  tags: { flexDirection: 'row', gap: 8 },
-  tag: { backgroundColor: theme.bg, borderWidth: 0.5, borderColor: theme.border, borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2 },
-  tagTxt: { fontSize: 10, color: theme.textSecondary },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
+
+  card: {
+    width: CARD_WIDTH,
+    backgroundColor: theme.bgCard,
+    borderWidth: 0.5, borderColor: theme.border,
+    borderRadius: radius.md, overflow: 'hidden',
+  },
+  accentBar: { height: 2 },
+  cardBody: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 },
+
+  info: { flex: 1, gap: 6 },
+  battName: { fontFamily: fontFamily.semibold, fontSize: 14, color: theme.textPrimary },
+  battType: { fontFamily: fontFamily.regular, fontSize: 11, color: theme.textSecondary },
+
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tag: {
+    borderWidth: 0.5, borderRadius: radius.sm,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  tagTxt: { fontFamily: fontFamily.medium, fontSize: 11 },
+
+  actions: { flexDirection: 'row', gap: 6, marginTop: 2 },
+  editBtn: {
+    flex: 1, backgroundColor: theme.accent + '12',
+    borderWidth: 0.5, borderColor: theme.accent + '55',
+    borderRadius: radius.sm, paddingVertical: 7, alignItems: 'center',
+  },
+  editTxt: { fontFamily: fontFamily.semibold, fontSize: 11, color: theme.accent },
+  deleteBtn: {
+    width: 34, height: 34,
+    backgroundColor: theme.danger + '10',
+    borderWidth: 0.5, borderColor: theme.danger + '44',
+    borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center',
+  },
+  deleteTxt: { fontFamily: fontFamily.semibold, fontSize: 13, color: theme.danger },
+
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 2 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.border },
-  dotActive: { width: 14, backgroundColor: theme.accent },
-  deleteBtn: { marginTop: 8, backgroundColor: '#1a0808', borderWidth: 0.5, borderColor: theme.danger, borderRadius: 8, padding: 8, alignItems: 'center' },
-  deleteTxt: { color: theme.danger, fontSize: 11 },
-  emptyContainer: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 12, padding: 20, alignItems: 'center' },
-  emptyTxt: { fontSize: 13, color: theme.textSecondary },
+  dotActive: { width: 16, backgroundColor: theme.accent, borderRadius: 3 },
+
+  emptyCard: {
+    backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border,
+    borderRadius: radius.md, padding: 24, alignItems: 'center', gap: 8,
+  },
+  emptyIcon: { fontSize: 28 },
+  emptyTxt: { fontFamily: fontFamily.regular, fontSize: 13, color: theme.textSecondary },
 });

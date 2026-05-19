@@ -11,20 +11,12 @@ Notifications.setNotificationHandler({
   }),
 });
 
-type Battery = {
-  id: number;
-  name: string;
-  percentage: number;
-};
-
-type Turbine = {
-  id: number;
-  name: string;
-  batteries: Battery[];
-};
+type Battery = { id: number; name: string; percentage: number };
+type Turbine = { id: number | string; name: string; batteries: Battery[] };
 
 type Props = {
   turbines: Turbine[];
+  alertThresholdPct?: number;
   onBatteryFull?: (turbineName: string, batteryName: string) => void;
 };
 
@@ -33,10 +25,7 @@ export async function requestNotificationPermission() {
   return status === "granted";
 }
 
-export async function sendBatteryFullNotification(
-  turbineName: string,
-  batteryName: string,
-) {
+export async function sendBatteryFullNotification(turbineName: string, batteryName: string) {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "🔋 Batterie pleine !",
@@ -47,27 +36,21 @@ export async function sendBatteryFullNotification(
   });
 }
 
-export async function sendBatteryAlertNotification(
-  turbineName: string,
-  batteryName: string,
-  pct: number,
-) {
+export async function sendBatteryAlertNotification(turbineName: string, batteryName: string, pct: number) {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "⚡ Batterie presque pleine",
-      body: `${batteryName} de ${turbineName} est à ${pct}%.`,
+      body: `${batteryName} de ${turbineName} est à ${Math.round(pct)}%.`,
       sound: true,
     },
     trigger: null,
   });
 }
 
-export default function NotificationManager({
-  turbines,
-  onBatteryFull,
-}: Props) {
+export default function NotificationManager({ turbines, alertThresholdPct = 90, onBatteryFull }: Props) {
   const notifiedFull = useRef<Set<string>>(new Set());
   const notifiedAlert = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     const fullBatteries: { turbineName: string; batteryName: string }[] = [];
 
@@ -77,26 +60,19 @@ export default function NotificationManager({
 
         if (battery.percentage >= 100 && !notifiedFull.current.has(key)) {
           notifiedFull.current.add(key);
-          fullBatteries.push({
-            turbineName: turbine.name,
-            batteryName: battery.name,
-          });
+          fullBatteries.push({ turbineName: turbine.name, batteryName: battery.name });
         }
 
         if (
-          battery.percentage >= 90 &&
+          battery.percentage >= alertThresholdPct &&
           battery.percentage < 100 &&
           !notifiedAlert.current.has(key)
         ) {
           notifiedAlert.current.add(key);
-          sendBatteryAlertNotification(
-            turbine.name,
-            battery.name,
-            battery.percentage,
-          );
+          sendBatteryAlertNotification(turbine.name, battery.name, battery.percentage);
         }
 
-        if (battery.percentage < 90) {
+        if (battery.percentage < alertThresholdPct) {
           notifiedAlert.current.delete(key);
           notifiedFull.current.delete(key);
         }
@@ -104,23 +80,14 @@ export default function NotificationManager({
     });
 
     if (fullBatteries.length === 1) {
-      sendBatteryFullNotification(
-        fullBatteries[0].turbineName,
-        fullBatteries[0].batteryName,
-      );
-      onBatteryFull?.(
-        fullBatteries[0].turbineName,
-        fullBatteries[0].batteryName,
-      );
+      sendBatteryFullNotification(fullBatteries[0].turbineName, fullBatteries[0].batteryName);
+      onBatteryFull?.(fullBatteries[0].turbineName, fullBatteries[0].batteryName);
     } else if (fullBatteries.length > 1) {
       const names = fullBatteries.map((b) => b.batteryName).join(", ");
-      sendBatteryFullNotification(
-        "HydroTech",
-        `${fullBatteries.length} batteries pleines`,
-      );
+      sendBatteryFullNotification("HydroTech", `${fullBatteries.length} batteries pleines`);
       onBatteryFull?.("HydroTech", `${names} sont pleines`);
     }
-  }, [turbines]);
+  }, [turbines, alertThresholdPct]);
 
   return null;
 }

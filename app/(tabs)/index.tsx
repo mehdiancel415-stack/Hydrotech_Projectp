@@ -1,549 +1,520 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Location from "expo-location";
-import { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  PanResponder,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Svg, { Polygon } from "react-native-svg";
-import NotificationManager from "../../components/NotificationManager";
-import SettingsScreen from "../../components/SettingsScreen";
-import SplashScreen from "../../components/SplashScreen";
-import Toast from "../../components/Toast";
-import TurbinePanel from "../../components/TurbinePanel";
-import WaterMap from "../../components/WaterMap";
-import { theme } from "../../constants/theme";
-import BluetoothScanner from "../BluetoothScanner";
+  View, Text, ScrollView, StyleSheet,
+  TouchableOpacity, Dimensions,
+} from 'react-native';
+import { useState, useEffect } from 'react';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue, useAnimatedStyle,
+  withSpring, withTiming, withRepeat, withSequence,
+  FadeInDown, FadeIn,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import Svg, { Circle, Polyline, Path } from 'react-native-svg';
+import { colors } from '../../theme/colors';
+import { fontFamily } from '../../theme/typography';
+import { spacing, radius } from '../../theme/spacing';
+import { useTurbines, Battery } from '../../contexts/TurbinesContext';
+import SkeletonCard from '../../components/ui/SkeletonCard';
+import BatteryRow from '../../components/BatteryRow';
+import TurbineSelector from '../../components/TurbineSelector';
+import BluetoothScanner from '../../components/BluetoothScanner';
+import BatteryConfig from '../../components/BatteryConfig';
+import BatteryEditModal from '../../components/BatteryEditModal';
+import { TurbineData } from '../../bleConfig';
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const PANEL_MIN = 90;
-const PANEL_MAX = SCREEN_HEIGHT * 0.75;
+const SCREEN_W = Dimensions.get('window').width;
+const CHART_W = SCREEN_W - 48;
 
-export default function HomeScreen() {
-  const [turbines, setTurbines] = useState<any[]>([]);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const [activeTurbine, setActiveTurbine] = useState(0);
-  const [showScanner, setShowScanner] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
-  const [preloadedWaterways, setPreloadedWaterways] = useState<any[]>([]);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastVisible, setToastVisible] = useState(false);
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    setToastVisible(true);
-  };
-  const panelY = useRef(new Animated.Value(PANEL_MIN)).current;
-  const lastY = useRef(PANEL_MIN);
-  const turbineScrollRef = useRef<ScrollView>(null);
-  const mapRef = useRef<any>(null);
-  const compassBottom = panelY.interpolate({
-    inputRange: [PANEL_MIN, PANEL_MAX],
-    outputRange: [PANEL_MIN + 10, PANEL_MAX + 10],
-    extrapolate: "clamp",
-  });
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.Low,
-            timeInterval: 10000,
-            distanceInterval: 10,
-          },
-          (loc) =>
-            setLocation({
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
-            }),
-        );
-      }
-    })();
-  }, []);
-  useEffect(() => {
-    loadTurbines();
-  }, []);
-
-  useEffect(() => {
-    if (dataLoaded) saveTurbines();
-  }, [turbines]);
-
-  const loadTurbines = async () => {
-    try {
-      const saved = await AsyncStorage.getItem("hydrotech_turbines");
-      if (saved) {
-        setTurbines(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.log("Load error:", e);
-    }
-    setDataLoaded(true);
-  };
-
-  const saveTurbines = async () => {
-    try {
-      await AsyncStorage.setItem(
-        "hydrotech_turbines",
-        JSON.stringify(turbines),
-      );
-    } catch (e) {
-      console.log("Save error:", e);
-    }
-  };
-
-  const goToMyLocation = () => {
-    if (location && mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        800,
-      );
-    }
-  };
-
-  const addTurbine = () => {
-    setShowScanner(true);
-  };
-
-  const handleDeviceConnected = (device: { id: string; name: string }) => {
-    const newTurbine = {
-      id: Date.now(),
-      name: device.name,
-      status: 'En marche',
-      power: Math.floor(Math.random() * 10) + 10,
-      energy: 0,
-      connectedAt: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      location: location ? {
-        latitude: location.latitude + (Math.random() - 0.5) * 0.01,
-        longitude: location.longitude + (Math.random() - 0.5) * 0.01,
-      } : null,
-      batteries: [],
-    };
-    const updated = [...turbines, newTurbine];
-    setTurbines(updated);
-    setTimeout(() => {
-      setActiveTurbine(updated.length - 1);
-      turbineScrollRef.current?.scrollTo({
-        x: (updated.length - 1) * SCREEN_WIDTH,
-        animated: true,
-      });
-      Animated.spring(panelY, {
-        toValue: PANEL_MIN,
-        useNativeDriver: false,
-      }).start();
-      lastY.current = PANEL_MIN;
-    }, 100);
-  };
-  const updateBatteries = (turbineId: number, batteries: any[]) => {
-    setTurbines((prev) =>
-      prev.map((t) => (t.id === turbineId ? { ...t, batteries } : t)),
-    );
-  };
-  const removeTurbine = (id: number) => {
-    const updated = turbines.filter((t) => t.id !== id);
-    setTurbines(updated);
-    setActiveTurbine(0);
-    turbineScrollRef.current?.scrollTo({ x: 0, animated: true });
-  };
-
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_, gesture) => {
-      return (
-        Math.abs(gesture.dy) > Math.abs(gesture.dx) && Math.abs(gesture.dy) > 5
-      );
-    },
-    onPanResponderMove: (_, gesture) => {
-      const newY = lastY.current - gesture.dy;
-      if (newY >= PANEL_MIN && newY <= PANEL_MAX) panelY.setValue(newY);
-    },
-    onPanResponderRelease: (_, gesture) => {
-      const newY = lastY.current - gesture.dy;
-      if (gesture.vy < -0.5 || newY > SCREEN_HEIGHT * 0.4) {
-        Animated.spring(panelY, {
-          toValue: PANEL_MAX,
-          useNativeDriver: false,
-        }).start();
-        lastY.current = PANEL_MAX;
-      } else {
-        Animated.spring(panelY, {
-          toValue: PANEL_MIN,
-          useNativeDriver: false,
-        }).start();
-        lastY.current = PANEL_MIN;
-      }
-    },
-  });
-
-  const handleTurbineScroll = (e: any) => {
-    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-    setActiveTurbine(index);
-  };
-
+// ─── Sparkline ────────────────────────────────────────────────────────────────
+function Sparkline({ data, width, height }: { data: number[]; width: number; height: number }) {
+  const d = data.slice(-24);
+  if (d.length < 2) return <View style={{ width, height }} />;
+  const max = Math.max(...d, 1);
+  const pts = d.map((v, i) => ({
+    x: (i / (d.length - 1)) * width,
+    y: height - (v / max) * height * 0.82 - 2,
+  }));
+  const line = pts.map((p) => `${p.x},${p.y}`).join(' ');
+  const area = [`M${pts[0].x} ${height}`, ...pts.map((p) => `L${p.x} ${p.y}`), `L${pts[pts.length-1].x} ${height}Z`].join(' ');
   return (
-    <View style={styles.container}>
-      <WaterMap
-        mapRef={mapRef}
-        location={location}
-        turbines={turbines}
-        preloadedWaterways={preloadedWaterways}
-      />
+    <Svg width={width} height={height}>
+      <Path d={area} fill={colors.teal} opacity={0.10} />
+      <Polyline points={line} fill="none" stroke={colors.teal} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
 
-      {/* BADGE BLE */}
-      {turbines.length > 0 && (
-        <View style={styles.topLeft}>
-          <View style={styles.bleBadge}>
-            <View style={styles.bleDot} />
-            <Text style={styles.bleTxt}>BLE</Text>
-          </View>
-          {turbines.length > 1 && (
-            <View style={styles.turbineIndicator}>
-              <Text style={styles.turbineIndicatorTxt}>
-                {activeTurbine + 1} / {turbines.length}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
+// ─── Power Arc ────────────────────────────────────────────────────────────────
+const ARC_SIZE = 160;
+const ARC_STROKE = 12;
+const ARC_R = (ARC_SIZE - ARC_STROKE) / 2;
+const ARC_C = 2 * Math.PI * ARC_R;
 
-      {/* BOUTONS HAUT DROITE */}
-      <View style={styles.topRight}>
-        {turbines.length > 0 && (
-          <TouchableOpacity style={styles.topBtn} onPress={addTurbine}>
-            <Text style={styles.topBtnTxt}>+</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={styles.topBtn}
-          onPress={() => setShowSettings(true)}
-        >
-          <Text style={styles.topBtnTxt}>⚙</Text>
-        </TouchableOpacity>
+function PowerArc({ pct }: { pct: number }) {
+  const clamp = Math.min(100, Math.max(0, pct));
+  const color = clamp >= 80 ? colors.success : clamp >= 40 ? colors.teal : clamp >= 20 ? colors.warning : colors.danger;
+  const offset = ARC_C * (1 - clamp / 100);
+  const cx = ARC_SIZE / 2;
+  const cy = ARC_SIZE / 2;
+  return (
+    <View style={{ width: ARC_SIZE, height: ARC_SIZE, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={ARC_SIZE} height={ARC_SIZE} style={StyleSheet.absoluteFill}>
+        {/* Track */}
+        <Circle cx={cx} cy={cy} r={ARC_R} stroke={colors.border} strokeWidth={ARC_STROKE} fill="none" />
+        {/* Glow */}
+        <Circle cx={cx} cy={cy} r={ARC_R} stroke={color} strokeWidth={ARC_STROKE + 10} fill="none"
+          strokeDasharray={ARC_C} strokeDashoffset={offset} strokeLinecap="round"
+          rotation="-90" origin={`${cx},${cy}`} opacity={0.14} />
+        {/* Arc */}
+        <Circle cx={cx} cy={cy} r={ARC_R} stroke={color} strokeWidth={ARC_STROKE} fill="none"
+          strokeDasharray={ARC_C} strokeDashoffset={offset} strokeLinecap="round"
+          rotation="-90" origin={`${cx},${cy}`} />
+      </Svg>
+      <View style={{ alignItems: 'center', gap: 1 }}>
+        <Text style={[s.arcNum, { color }]}>{Math.round(clamp)}<Text style={s.arcPct}>%</Text></Text>
+        <Text style={s.arcLbl}>charge</Text>
       </View>
-
-      {/* BOUTON BOUSSOLE */}
-      <Animated.View
-        style={[
-          styles.compassBtn,
-          { bottom: turbines.length > 0 ? compassBottom : 90 } as any,
-        ]}
-      >
-        <TouchableOpacity onPress={goToMyLocation} style={styles.compassInner}>
-          <Svg
-            width="21"
-            height="21"
-            viewBox="0 0 24 24"
-            style={{ transform: [{ rotate: "30deg" }] }}
-          >
-            <Polygon
-              points="12,2 20,22 12,17 4,22"
-              fill="#5ba3d9"
-              opacity={0.95}
-            />
-          </Svg>
-        </TouchableOpacity>
-      </Animated.View>
-      {/* BOUTON + ACCUEIL */}
-      {turbines.length === 0 && (
-        <TouchableOpacity style={styles.plusBtn} onPress={addTurbine}>
-          <Text style={styles.plusTxt}>+</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* PANNEAU DONNÉES */}
-      {turbines.length > 0 && (
-        <Animated.View
-          style={[styles.panel, { height: panelY }]}
-          {...panResponder.panHandlers}
-        >
-          <View style={styles.dragBarWrap}>
-            <View style={styles.dragBar} />
-          </View>
-
-          <View style={styles.miniRow}>
-            <View style={styles.miniRing}>
-              <Text style={styles.miniPct}>
-                {Math.round(
-                  (turbines[activeTurbine]?.batteries.reduce(
-                    (s: number, b: any) =>
-                      s + (b.capacity * b.percentage) / 100,
-                    0,
-                  ) /
-                    turbines[activeTurbine]?.batteries.reduce(
-                      (s: number, b: any) => s + b.capacity,
-                      0,
-                    )) *
-                  100,
-                )}
-                %
-              </Text>
-            </View>
-            <View style={styles.miniStats}>
-              <View style={styles.chipRow}>
-                <View style={styles.chip}>
-                  <Text style={styles.chipTxt}>
-                    {turbines[activeTurbine]?.power} W
-                  </Text>
-                </View>
-                <View style={styles.chip}>
-                  <Text style={styles.chipTxt}>
-                    {turbines[activeTurbine]?.status}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.etaTxt}>{turbines[activeTurbine]?.name}</Text>
-            </View>
-            {turbines.length > 1 && (
-              <View style={styles.turbineDots}>
-                {turbines.map((_, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    onPress={() => {
-                      setActiveTurbine(i);
-                      turbineScrollRef.current?.scrollTo({
-                        x: i * SCREEN_WIDTH,
-                        animated: true,
-                      });
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.turbineDot,
-                        i === activeTurbine && styles.turbineDotActive,
-                      ]}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
-          <ScrollView
-            ref={turbineScrollRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handleTurbineScroll}
-            scrollEventThrottle={16}
-            style={styles.turbineScroll}
-          >
-            {turbines.map((t) => (
-              <TurbinePanel
-                key={t.id}
-                turbine={{
-                  ...t,
-                  onDelete: removeTurbine,
-                  onUpdateBatteries: updateBatteries,
-                }}
-              />
-            ))}
-          </ScrollView>
-        </Animated.View>
-      )}
-      <BluetoothScanner
-        visible={showScanner}
-        onClose={() => setShowScanner(false)}
-        onConnect={(device, bleData) => handleDeviceConnected(device, bleData)}
-      />
-      <SettingsScreen
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-        turbines={turbines}
-        onUpdateBatteries={updateBatteries}
-        onTestToast={() => showToast("🔋 Batterie 1 de Turbine 1 est pleine !")}
-      />
-      <NotificationManager
-        turbines={turbines}
-        onBatteryFull={(turbineName, batteryName) => {
-          showToast(`🔋 ${batteryName} de ${turbineName} est pleine !`);
-        }}
-      />
-      <Toast
-        message={toastMessage}
-        visible={toastVisible}
-        onHide={() => setToastVisible(false)}
-      />
-      {showSplash && (
-        <SplashScreen
-          onFinish={() => setShowSplash(false)}
-          location={location}
-          onWaterwaysLoaded={(ways) => setPreloadedWaterways(ways)}
-        />
-      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bg },
-  topLeft: {
-    position: "absolute",
-    top: 52,
-    left: 14,
-    flexDirection: "row",
-    gap: 8,
-    zIndex: 20,
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+function MetricCard({ icon, label, value, unit, color = colors.teal }:
+  { icon: string; label: string; value: string | number; unit: string; color?: string }) {
+  return (
+    <View style={[s.metCard, { borderColor: color + '22' }]}>
+      <View style={[s.metIcon, { backgroundColor: color + '15' }]}>
+        <Text style={s.metIconTxt}>{icon}</Text>
+      </View>
+      <Text style={s.metLabel}>{label}</Text>
+      <Text style={[s.metVal, { color }]}>{typeof value === 'number' ? value.toFixed(1) : value}</Text>
+      <Text style={s.metUnit}>{unit}</Text>
+    </View>
+  );
+}
+
+// ─── Stat Box ─────────────────────────────────────────────────────────────────
+function StatBox({ label, value, unit, color = colors.textPrimary }:
+  { label: string; value: string; unit?: string; color?: string }) {
+  return (
+    <View style={s.statBox}>
+      <Text style={[s.statVal, { color }]}>{value}{unit && <Text style={s.statUnit}> {unit}</Text>}</Text>
+      <Text style={s.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
+export default function LiveScreen() {
+  const {
+    turbines, activeTurbineId, setActiveTurbineId,
+    addTurbine, removeTurbine, updateBatteries, setBatteryPct,
+    currentSession, totalCo2Saved,
+  } = useTurbines();
+  const insets = useSafeAreaInsets();
+  const [showScanner, setShowScanner] = useState(false);
+  const [showAddBattery, setShowAddBattery] = useState(false);
+  const [editBattery, setEditBattery] = useState<Battery | null>(null);
+  const [booting, setBooting] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem('hydrotech_onboarding_done').then((v) => {
+      if (cancelled) return;
+      if (!v) router.replace('/onboarding');
+      else setTimeout(() => { if (!cancelled) setBooting(false); }, 800);
+    }).catch(() => { if (!cancelled) setBooting(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const active = turbines.find((t) => t.id === activeTurbineId) || turbines[0] || null;
+
+  function handleConnect(device: { id: string; name: string }, bleData?: TurbineData) {
+    const id = device.id.startsWith('demo-') ? device.id : Date.now();
+    addTurbine({
+      id, name: device.name, status: 'En marche',
+      power: bleData?.power ?? 0,
+      voltage: bleData?.voltage, current: bleData?.current, flowRate: 0.4,
+      connectedAt: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      location: null, batteries: [],
+    });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  function handleAddBattery(d: { name: string; type: string; capacity: number }) {
+    if (!active) return;
+    const ranges: Record<string, [number, number]> = {
+      LiFePO4: [10, 13.6], 'Li-ion': [10, 16.8], Plomb: [11.8, 12.7],
+    };
+    const [min, max] = ranges[d.type] ?? [10, 13.6];
+    const volt = active.voltage ?? 13.2;
+    const pct = Math.min(100, Math.max(0, Math.round(((volt - min) / (max - min)) * 100)));
+    updateBatteries(active.id, [
+      ...active.batteries,
+      { id: Date.now(), name: d.name, type: d.type, capacity: d.capacity, percentage: pct },
+    ]);
+  }
+
+  function batteryEta(b: Battery): string {
+    if (b.percentage >= 100) return 'pleine';
+    if (!active || active.power <= 0) return '—';
+    const remainAh = b.capacity * (1 - b.percentage / 100);
+    const totalCap = active.batteries.reduce((s, x) => s + x.capacity, 0);
+    const amps = (active.power / 12) * (b.capacity / Math.max(1, totalCap));
+    if (amps <= 0) return '—';
+    const h = remainAh / amps;
+    if (h > 24) return '>24h';
+    const hh = Math.floor(h);
+    const mm = Math.round((h - hh) * 60);
+    return hh > 0 ? `${hh}h${String(mm).padStart(2, '0')}` : `${mm}min`;
+  }
+
+  const totalCap = active?.batteries.reduce((s, b) => s + b.capacity, 0) ?? 0;
+  const totalChg = active?.batteries.reduce((s, b) => s + b.capacity * b.percentage / 100, 0) ?? 0;
+  const avgBattPct = totalCap > 0 ? (totalChg / totalCap) * 100 : 0;
+
+  const sessionMin = currentSession ? Math.round((Date.now() - currentSession.startedAt) / 60000) : 0;
+  const sessionStr = sessionMin < 60
+    ? `${sessionMin}min`
+    : `${Math.floor(sessionMin / 60)}h${String(sessionMin % 60).padStart(2, '0')}`;
+
+  const statusColor = active ? colors.success : colors.textMuted;
+  const statusLabel = active ? 'En ligne' : 'Hors ligne';
+
+  // ─── EMPTY STATE ──────────────────────────────────────────────────────────
+  if (!booting && turbines.length === 0) {
+    return (
+      <View style={s.root}>
+        <Animated.View entering={FadeIn.duration(500)} style={s.emptyWrap}>
+          {/* Orbe */}
+          <View style={s.emptyOrb}>
+            <Svg width={52} height={52} viewBox="0 0 24 24">
+              <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill={colors.teal} />
+            </Svg>
+          </View>
+          <Text style={s.emptyTitle}>Aucune turbine</Text>
+          <Text style={s.emptyBody}>
+            Connectez votre turbine HydroTech via Bluetooth pour surveiller la production en temps réel.
+          </Text>
+          <TouchableOpacity style={s.emptyBtn} onPress={() => setShowScanner(true)} activeOpacity={0.85}>
+            <Text style={s.emptyBtnTxt}>📡  Connecter via Bluetooth</Text>
+          </TouchableOpacity>
+        </Animated.View>
+        <BluetoothScanner visible={showScanner} onClose={() => setShowScanner(false)}
+          onConnect={(d, data) => handleConnect(d, data as TurbineData)} />
+      </View>
+    );
+  }
+
+  // ─── SKELETON ─────────────────────────────────────────────────────────────
+  if (booting) {
+    return (
+      <View style={s.root}>
+        <SkeletonCard style={{ margin: spacing.lg, marginTop: 64 }} />
+        <SkeletonCard style={{ marginHorizontal: spacing.lg }} lines={2} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={s.root}>
+      <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 12 }]} showsVerticalScrollIndicator={false}>
+
+        {/* ─── HEADER ────────────────────────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(0).duration(400)} style={s.header}>
+          <View>
+            <Text style={s.headerGreeting}>Bonjour 👋</Text>
+            <Text style={s.headerTitle}>HydroTech Live</Text>
+          </View>
+          <View style={s.headerRight}>
+            <View style={[s.statusPill, { borderColor: statusColor + '40', backgroundColor: statusColor + '12' }]}>
+              <View style={[s.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[s.statusTxt, { color: statusColor }]}>{statusLabel}</Text>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ─── TURBINE SELECTOR ──────────────────────────────────────────── */}
+        <TurbineSelector turbines={turbines} activeId={activeTurbineId}
+          onSelect={setActiveTurbineId} onAdd={() => setShowScanner(true)} />
+
+        {/* ─── HERO CARD ─────────────────────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(80).duration(400)} style={s.heroCard}>
+          {/* Gradient band en haut */}
+          <View style={s.heroBand} />
+
+          <View style={s.heroBody}>
+            <View style={s.heroLeft}>
+              <Text style={s.heroLabel}>Puissance</Text>
+              <View style={s.heroPowerRow}>
+                <Text style={s.heroPower}>{Math.round(active?.power ?? 0)}</Text>
+                <Text style={s.heroWatts}>W</Text>
+              </View>
+              <View style={s.heroTagRow}>
+                <View style={s.heroTag}>
+                  <Text style={s.heroTagTxt}>⚡ {active?.connectedAt ?? '--:--'}</Text>
+                </View>
+              </View>
+              {/* Sparkline */}
+              <View style={{ marginTop: spacing.md }}>
+                <Text style={s.sparkLabel}>Historique</Text>
+                <Sparkline data={active?.powerHistory ?? [active?.power ?? 0]} width={CHART_W * 0.52} height={40} />
+              </View>
+            </View>
+            <PowerArc pct={avgBattPct} />
+          </View>
+        </Animated.View>
+
+        {/* ─── METRICS ROW ───────────────────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(160).duration(400)} style={s.metricsRow}>
+          <MetricCard icon="⚡" label="Tension" value={active?.voltage ?? 0} unit="V" color={colors.blue} />
+          <MetricCard icon="〰" label="Courant" value={active?.current ?? 0} unit="A" color={colors.teal} />
+          <MetricCard icon="💧" label="Débit" value={active?.flowRate ?? 0} unit="m/s" color={colors.success} />
+        </Animated.View>
+
+        {/* ─── SESSION STATS ─────────────────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(220).duration(400)} style={s.statsCard}>
+          <Text style={s.sectionTitle}>Session en cours</Text>
+          <View style={s.statsRow}>
+            <StatBox
+              label="Énergie produite"
+              value={currentSession?.totalEnergy.toFixed(1) ?? '0.0'}
+              unit="Wh"
+              color={colors.teal}
+            />
+            <View style={s.statsDivider} />
+            <StatBox label="Durée" value={sessionStr} />
+            <View style={s.statsDivider} />
+            <StatBox
+              label="CO₂ évité"
+              value={totalCo2Saved.toFixed(2)}
+              unit="kg"
+              color={colors.success}
+            />
+          </View>
+        </Animated.View>
+
+        {/* ─── BATTERIES ─────────────────────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(280).duration(400)} style={s.battCard}>
+          <View style={s.battHead}>
+            <View>
+              <Text style={s.sectionTitle}>Batteries</Text>
+              <Text style={s.sectionSub}>{active?.batteries.length ?? 0} connectée{(active?.batteries.length ?? 0) !== 1 ? 's' : ''}</Text>
+            </View>
+            <TouchableOpacity style={s.addBtn}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowAddBattery(true); }}
+              activeOpacity={0.75}>
+              <Text style={s.addBtnTxt}>+ Ajouter</Text>
+            </TouchableOpacity>
+          </View>
+
+          {(active?.batteries.length ?? 0) === 0 ? (
+            <View style={s.battEmpty}>
+              <Text style={s.battEmptyIcon}>🔋</Text>
+              <Text style={s.battEmptyTxt}>Ajoutez une batterie pour voir son état de charge</Text>
+            </View>
+          ) : (
+            active!.batteries.map((b, i) => (
+              <View key={b.id}>
+                <BatteryRow name={b.name} type={b.type} capacity={b.capacity}
+                  percentage={b.percentage} remainingTime={batteryEta(b)}
+                  onPress={() => setEditBattery(b)} />
+              </View>
+            ))
+          )}
+        </Animated.View>
+
+        {/* ─── DISCONNECT ────────────────────────────────────────────────── */}
+        {active && (
+          <TouchableOpacity
+            style={s.disconnectBtn}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); removeTurbine(active.id); }}
+            activeOpacity={0.6}
+          >
+            <Text style={s.disconnectTxt}>Déconnecter {active.name}</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      <BluetoothScanner visible={showScanner} onClose={() => setShowScanner(false)}
+        onConnect={(d, data) => handleConnect(d, data as TurbineData)} />
+      <BatteryConfig visible={showAddBattery} onClose={() => setShowAddBattery(false)}
+        onSave={handleAddBattery} detectedVoltage={active?.voltage} />
+      <BatteryEditModal visible={editBattery !== null} battery={editBattery}
+        onClose={() => setEditBattery(null)}
+        onSave={(pct) => { if (active && editBattery) setBatteryPct(active.id, editBattery.id, pct); }}
+        onDelete={() => { if (active && editBattery) updateBatteries(active.id, active.batteries.filter((b) => b.id !== editBattery.id)); }} />
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bgBase },
+  content: { paddingHorizontal: spacing.lg },
+
+  // Header
+  header: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    justifyContent: 'space-between', marginBottom: spacing.lg,
   },
-  topRight: {
-    position: "absolute",
-    top: 52,
-    right: 14,
-    flexDirection: "row",
-    gap: 8,
-    zIndex: 20,
+  headerGreeting: {
+    fontFamily: fontFamily.regular, fontSize: 13,
+    color: colors.textMuted, marginBottom: 2,
   },
-  topBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(10,15,26,0.88)",
-    borderWidth: 0.5,
-    borderColor: theme.border,
-    alignItems: "center",
-    justifyContent: "center",
+  headerTitle: {
+    fontFamily: fontFamily.bold, fontSize: 24,
+    color: colors.textPrimary, letterSpacing: -0.5,
   },
-  topBtnTxt: { color: theme.accent, fontSize: 16 },
-  bleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(10,15,26,0.88)",
-    borderWidth: 0.5,
-    borderColor: theme.border,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  headerRight: { paddingTop: 4 },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderWidth: 1, borderRadius: radius.full,
+    paddingHorizontal: 12, paddingVertical: 6,
   },
-  bleDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.accent,
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusTxt: { fontFamily: fontFamily.semibold, fontSize: 11, letterSpacing: 0.3 },
+
+  // Hero
+  heroCard: {
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.xl, overflow: 'hidden',
+    marginBottom: spacing.md,
+    shadowColor: colors.teal, shadowOpacity: 0.08, shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
-  bleTxt: { color: theme.textPrimary, fontSize: 10, letterSpacing: 1 },
-  turbineIndicator: {
-    backgroundColor: "rgba(10,15,26,0.88)",
-    borderWidth: 0.5,
-    borderColor: theme.border,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  heroBand: {
+    height: 3,
+    backgroundColor: colors.teal,
+    opacity: 0.7,
   },
-  turbineIndicatorTxt: {
-    color: theme.textPrimary,
-    fontSize: 10,
-    letterSpacing: 1,
+  heroBody: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.xl, paddingTop: spacing.lg,
   },
-  plusBtn: {
-    position: "absolute",
-    bottom: 24,
-    right: 16,
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: "#1a3a5c",
-    borderWidth: 1,
-    borderColor: "#3d7eb5",
-    alignItems: "center",
-    justifyContent: "center",
+  heroLeft: { flex: 1 },
+  heroLabel: {
+    fontFamily: fontFamily.semibold, fontSize: 10, letterSpacing: 1.8,
+    color: colors.textMuted, textTransform: 'uppercase', marginBottom: 4,
   },
-  plusTxt: { color: "#5ba3d9", fontSize: 32, lineHeight: 36 },
-  compassBtn: {
-    position: "absolute",
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(10,15,26,0.92)",
-    borderWidth: 0.5,
-    borderColor: "#3d7eb5",
-    zIndex: 50,
+  heroPowerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  heroPower: {
+    fontFamily: fontFamily.monoBold, fontSize: 62,
+    color: colors.textPrimary, letterSpacing: -4, lineHeight: 66,
   },
-  compassInner: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingBottom: 2,
+  heroWatts: {
+    fontFamily: fontFamily.semibold, fontSize: 20,
+    color: colors.textSecondary, marginBottom: 10,
   },
-  compassTxt: {
-    color: "#5ba3d9",
-    fontSize: 24,
-    textAlign: "center",
-    lineHeight: 28,
-    fontWeight: "300",
+  heroTagRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  heroTag: {
+    backgroundColor: colors.bgElevated, borderRadius: radius.sm,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: colors.border,
   },
-  panel: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: theme.bg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 0.5,
-    borderColor: theme.primary,
+  heroTagTxt: { fontFamily: fontFamily.medium, fontSize: 11, color: colors.textMuted },
+  sparkLabel: {
+    fontFamily: fontFamily.semibold, fontSize: 9, letterSpacing: 1.2,
+    color: colors.textMuted, textTransform: 'uppercase', marginBottom: 4,
   },
-  dragBarWrap: { alignItems: "center", paddingTop: 10, paddingBottom: 6 },
-  dragBar: {
-    width: 36,
-    height: 4,
-    backgroundColor: theme.border,
-    borderRadius: 2,
+
+  // Arc
+  arcNum: { fontFamily: fontFamily.monoBold, fontSize: 26, letterSpacing: -1 },
+  arcPct: { fontSize: 14, letterSpacing: 0 },
+  arcLbl: {
+    fontFamily: fontFamily.medium, fontSize: 10, letterSpacing: 0.8,
+    color: colors.textMuted, textTransform: 'uppercase',
   },
-  miniRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    gap: 12,
-    paddingBottom: 8,
+
+  // Metrics
+  metricsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  metCard: {
+    flex: 1, backgroundColor: colors.bgSurface,
+    borderWidth: 1, borderRadius: radius.lg,
+    padding: spacing.md, alignItems: 'center', gap: 4,
   },
-  miniRing: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 3,
-    borderColor: theme.primary,
-    alignItems: "center",
-    justifyContent: "center",
+  metIcon: {
+    width: 36, height: 36, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 2,
   },
-  miniPct: { color: theme.textPrimary, fontSize: 11, fontWeight: "500" },
-  miniStats: { flex: 1 },
-  chipRow: { flexDirection: "row", gap: 6, marginBottom: 4 },
-  chip: {
-    backgroundColor: theme.bgCard,
-    borderWidth: 0.5,
-    borderColor: theme.border,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  metIconTxt: { fontSize: 16 },
+  metLabel: {
+    fontFamily: fontFamily.semibold, fontSize: 9, letterSpacing: 1.2,
+    color: colors.textMuted, textTransform: 'uppercase',
   },
-  chipTxt: { color: theme.textPrimary, fontSize: 11 },
-  etaTxt: { color: theme.textSecondary, fontSize: 10 },
-  turbineDots: { flexDirection: "column", gap: 4 },
-  turbineDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: theme.border,
+  metVal: { fontFamily: fontFamily.monoBold, fontSize: 20, letterSpacing: -0.5 },
+  metUnit: { fontFamily: fontFamily.medium, fontSize: 10, color: colors.textMuted },
+
+  // Stats
+  statsCard: {
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.lg, padding: spacing.lg,
+    marginBottom: spacing.md,
   },
-  turbineDotActive: { backgroundColor: theme.accent, height: 12 },
-  turbineScroll: { flex: 1 },
+  sectionTitle: {
+    fontFamily: fontFamily.semibold, fontSize: 13,
+    color: colors.textPrimary, marginBottom: spacing.md,
+  },
+  sectionSub: { fontFamily: fontFamily.regular, fontSize: 11, color: colors.textMuted },
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
+  statBox: { flex: 1, alignItems: 'center', gap: 4 },
+  statVal: { fontFamily: fontFamily.monoBold, fontSize: 22, color: colors.textPrimary, letterSpacing: -0.5 },
+  statUnit: { fontSize: 12, color: colors.textSecondary },
+  statLabel: { fontFamily: fontFamily.medium, fontSize: 10, color: colors.textMuted, letterSpacing: 1, textTransform: 'uppercase' },
+  statsDivider: { width: 1, height: 40, backgroundColor: colors.border },
+
+  // Batteries
+  battCard: {
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.lg, padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  battHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.md },
+  addBtn: {
+    backgroundColor: colors.teal20,
+    borderWidth: 1, borderColor: colors.borderTeal,
+    borderRadius: radius.full, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  addBtnTxt: { fontFamily: fontFamily.semibold, fontSize: 12, color: colors.teal },
+  battEmpty: { paddingVertical: spacing.xl, alignItems: 'center', gap: spacing.sm },
+  battEmptyIcon: { fontSize: 28 },
+  battEmptyTxt: { fontFamily: fontFamily.regular, fontSize: 13, color: colors.textMuted, textAlign: 'center' },
+
+  // Disconnect
+  disconnectBtn: { paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
+  disconnectTxt: { fontFamily: fontFamily.medium, fontSize: 12, color: colors.danger, letterSpacing: 0.2 },
+
+  // Empty state
+  emptyWrap: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    padding: spacing['4xl'], gap: spacing.lg, paddingTop: 80,
+  },
+  emptyOrb: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: colors.teal10,
+    borderWidth: 1, borderColor: colors.borderTeal,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.teal, shadowOpacity: 0.3, shadowRadius: 28, elevation: 10,
+    marginBottom: spacing.sm,
+  },
+  emptyTitle: { fontFamily: fontFamily.bold, fontSize: 22, color: colors.textPrimary, letterSpacing: -0.4 },
+  emptyBody: {
+    fontFamily: fontFamily.regular, fontSize: 14, color: colors.textSecondary,
+    textAlign: 'center', lineHeight: 22,
+  },
+  emptyBtn: {
+    backgroundColor: colors.teal, borderRadius: radius.lg,
+    paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg, marginTop: spacing.sm,
+    shadowColor: colors.teal, shadowOpacity: 0.45, shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 }, elevation: 12,
+  },
+  emptyBtnTxt: { fontFamily: fontFamily.semibold, fontSize: 15, color: colors.bgBase },
 });

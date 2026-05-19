@@ -4,32 +4,28 @@ import { theme } from '../constants/theme';
 import BatteryRing from './BatteryRing';
 import BatteryCarousel from './BatteryCarousel';
 import BatteryConfig from './BatteryConfig';
+import PowerChart from './PowerChart';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-type Battery = {
-  id: number;
-  name: string;
-  type: string;
-  capacity: number;
-  percentage: number;
-};
+type Battery = { id: number; name: string; type: string; capacity: number; percentage: number };
 
 type Turbine = {
-  id: number;
+  id: number | string;
   name: string;
   status: string;
   power: number;
   energy: number;
   connectedAt: string;
-  onDelete: (id: number) => void;
-  onUpdateBatteries: (turbineId: number, batteries: Battery[]) => void;
+  onDelete: (id: number | string) => void;
+  onUpdateBatteries: (turbineId: number | string, batteries: Battery[]) => void;
+  onEditBattery?: (turbineId: number | string, battery: Battery) => void;
+  onEditTurbine?: (turbineId: number | string) => void;
   batteries: Battery[];
+  powerHistory?: number[];
 };
 
-type Props = {
-  turbine: Turbine;
-};
+type Props = { turbine: Turbine };
 
 const voltageToPercent = (voltage: number, type: string): number => {
   const ranges: Record<string, [number, number]> = {
@@ -53,42 +49,36 @@ export default function TurbinePanel({ turbine }: Props) {
   const etaH = Math.floor(totalH);
   const etaM = Math.round((totalH - etaH) * 60);
 
-  const handleAddBattery = (batteryData: { name: string; type: string; capacity: number }) => {
+  const handleAddBattery = (data: { name: string; type: string; capacity: number }) => {
     const newBattery: Battery = {
       id: Date.now(),
-      name: batteryData.name,
-      type: batteryData.type,
-      capacity: batteryData.capacity,
-      percentage: voltageToPercent(13.2, batteryData.type),
+      name: data.name,
+      type: data.type,
+      capacity: data.capacity,
+      percentage: voltageToPercent(13.2, data.type),
     };
-    const updated = [...turbine.batteries, newBattery];
-    turbine.onUpdateBatteries(turbine.id, updated);
+    turbine.onUpdateBatteries(turbine.id, [...turbine.batteries, newBattery]);
   };
 
   return (
     <View style={[styles.container, { width: SCREEN_WIDTH }]}>
-
-      {/* TITRE TURBINE */}
       <View style={styles.turbineHeader}>
         <View style={styles.turbineDot} />
         <View style={styles.turbineHeaderLeft}>
           <Text style={styles.turbineName}>{turbine.name}</Text>
           <Text style={styles.turbineTime}>connecté à {turbine.connectedAt}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={() => turbine.onDelete(turbine.id)}
-        >
+        {turbine.onEditTurbine && (
+          <TouchableOpacity style={styles.editBtn} onPress={() => turbine.onEditTurbine?.(turbine.id)}>
+            <Text style={styles.editTxt}>Modifier</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={styles.deleteBtn} onPress={() => turbine.onDelete(turbine.id)}>
           <Text style={styles.deleteTxt}>Déconnecter</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={styles.scroll}
-        nestedScrollEnabled={true}
-      >
-        {/* GRAND ANNEAU */}
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll} nestedScrollEnabled={true}>
         {turbine.batteries.length > 0 ? (
           <>
             <View style={styles.bigRingWrap}>
@@ -100,11 +90,10 @@ export default function TurbinePanel({ turbine }: Props) {
               </View>
             </View>
 
-            {/* METRIQUES */}
             <View style={styles.metricsRow}>
               <View style={styles.mc}>
                 <Text style={styles.mcLabel}>Puissance</Text>
-                <Text style={styles.mcVal}>{turbine.power}<Text style={styles.mcUnit}> W</Text></Text>
+                <Text style={styles.mcVal}>{Math.round(turbine.power)}<Text style={styles.mcUnit}> W</Text></Text>
               </View>
               <View style={styles.mc}>
                 <Text style={styles.mcLabel}>Énergie</Text>
@@ -112,26 +101,34 @@ export default function TurbinePanel({ turbine }: Props) {
               </View>
             </View>
 
-            {/* STATUT */}
+            {/* GRAPHIQUE PUISSANCE TEMPS RÉEL */}
+            <View style={styles.chartCard}>
+              <PowerChart
+                history={turbine.powerHistory || []}
+                width={SCREEN_WIDTH - 32 - 28}
+                height={70}
+                label="Puissance — derniers points"
+              />
+            </View>
+
             <View style={styles.statusCard}>
               <View style={[styles.statusDot, { backgroundColor: turbine.status === 'En marche' ? theme.success : theme.warning }]} />
               <Text style={styles.statusTxt}>{turbine.status}</Text>
-              <View style={styles.bleBadge}>
-                <Text style={styles.bleTxt}>BLE</Text>
-              </View>
+              <View style={styles.bleBadge}><Text style={styles.bleTxt}>BLE</Text></View>
             </View>
 
-            {/* BATTERIES */}
-            <BatteryCarousel 
-                batteries={turbine.batteries} 
-                onDelete={(batteryId) => {
-                    const updated = turbine.batteries.filter(b => b.id !== batteryId);
-                    turbine.onUpdateBatteries(turbine.id, updated);
-                }}
-                />
+            <BatteryCarousel
+              batteries={turbine.batteries}
+              onEdit={(b) => turbine.onEditBattery?.(turbine.id, b)}
+              onDelete={(batteryId) => {
+                turbine.onUpdateBatteries(
+                  turbine.id,
+                  turbine.batteries.filter((b) => b.id !== batteryId),
+                );
+              }}
+            />
           </>
         ) : (
-          /* PAS DE BATTERIE */
           <View style={styles.noBatteryCard}>
             <Text style={styles.noBatteryIcon}>🔋</Text>
             <Text style={styles.noBatteryTitle}>Aucune batterie connectée</Text>
@@ -139,35 +136,30 @@ export default function TurbinePanel({ turbine }: Props) {
           </View>
         )}
 
-        {/* BOUTON AJOUTER BATTERIE */}
-        <TouchableOpacity
-          style={styles.addBatteryBtn}
-          onPress={() => setShowBatteryConfig(true)}
-        >
+        <TouchableOpacity style={styles.addBatteryBtn} onPress={() => setShowBatteryConfig(true)}>
           <Text style={styles.addBatteryTxt}>+ Ajouter une batterie</Text>
         </TouchableOpacity>
-
       </ScrollView>
 
-      {/* MODAL CONFIG BATTERIE */}
       <BatteryConfig
         visible={showBatteryConfig}
         onClose={() => setShowBatteryConfig(false)}
         onSave={handleAddBattery}
         detectedVoltage={13.2}
       />
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16 },
-  turbineHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  turbineHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   turbineHeaderLeft: { flex: 1 },
   turbineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.success },
   turbineName: { fontSize: 14, fontWeight: '500', color: theme.textPrimary },
   turbineTime: { fontSize: 10, color: theme.textSecondary, marginTop: 1 },
+  editBtn: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  editTxt: { color: theme.accent, fontSize: 11 },
   deleteBtn: { backgroundColor: '#1a0808', borderWidth: 0.5, borderColor: theme.danger, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   deleteTxt: { color: theme.danger, fontSize: 11 },
   scroll: { flex: 1 },
@@ -180,6 +172,7 @@ const styles = StyleSheet.create({
   mcLabel: { fontSize: 9, letterSpacing: 1, color: theme.textSecondary, textTransform: 'uppercase', marginBottom: 4 },
   mcVal: { fontSize: 20, fontWeight: '500', color: theme.textPrimary },
   mcUnit: { fontSize: 11, color: theme.textSecondary },
+  chartCard: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 12, padding: 14, marginBottom: 10, alignItems: 'center' },
   statusCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 12, padding: 12, marginBottom: 10 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusTxt: { flex: 1, fontSize: 13, color: theme.textPrimary },
