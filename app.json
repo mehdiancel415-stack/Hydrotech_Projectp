@@ -32,7 +32,6 @@
         "backgroundColor": "#0a0f1a"
       },
       "package": "com.hydrotech.app",
-      "newArchEnabled": false,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "BLUETOOTH",
@@ -66,8 +65,7 @@
           "bluetoothAlwaysPermission": "HydroTech utilise le Bluetooth pour se connecter à votre turbine."
         }
       ],
-      "expo-web-browser",
-      "@maplibre/maplibre-react-native"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
