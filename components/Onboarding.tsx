@@ -99,6 +99,6 @@ const styles = StyleSheet.create({
   dots: { flexDirection: "row", justifyContent: "center", gap: 8, marginVertical: 24 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.border },
   dotActive: { width: 24, backgroundColor: theme.accent },
-  nextBtn: { marginHorizontal: 32, marginBottom: 40, backgroundColor: "#0f2040", borderWidth: 0.5, borderColor: theme.primary, borderRadius: 14, padding: 16, alignItems: "center" },
-  nextTxt: { color: theme.accent, fontSize: 15, fontWeight: "500" },
+  nextBtn: { marginHorizontal: 32, marginBottom: 40, backgroundColor: theme.primary, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 14, padding: 16, alignItems: "center" },
+  nextTxt: { color: theme.textInverse, fontSize: 15 },
 });

@@ -1,47 +1,54 @@
 // HydroTech Design System — Color Tokens
-// Inspired by Linear, Nothing OS, Apple Health
+// Light theme — Outdoor Premium (Strava / AllTrails direction)
 
 export const colors = {
   // === Backgrounds (layered depth) ===
-  bgBase:     '#090E1A',  // root background
-  bgSurface:  '#0F1629',  // cards, panels
-  bgElevated: '#161E35',  // modals, overlays, tooltips
-  bgInset:    '#060A14',  // inset / recessed areas
+  bgBase:     '#F0F4F8',  // root background
+  bgSurface:  '#FAFCFF',  // cards, panels
+  bgElevated: '#FFFFFF',  // modals, overlays, tooltips
+  bgInset:    '#E8EDF5',  // inset / recessed areas
 
   // === Borders ===
-  border:       'rgba(255,255,255,0.06)',
-  borderMedium: 'rgba(255,255,255,0.10)',
-  borderStrong: 'rgba(255,255,255,0.16)',
-  borderTeal:   'rgba(0,212,180,0.25)',
-  borderBlue:   'rgba(59,130,246,0.25)',
+  border:       '#CBD5E1',
+  borderMedium: '#94A3B8',
+  borderStrong: '#475569',
+  borderTeal:   'rgba(37,99,196,0.30)',
+  borderBlue:   'rgba(27,79,155,0.25)',
 
-  // === Accent — teal électrique ===
-  teal:      '#00D4B4',
-  teal10:    'rgba(0,212,180,0.10)',
-  teal20:    'rgba(0,212,180,0.20)',
-  teal40:    'rgba(0,212,180,0.40)',
-  tealGlow:  'rgba(0,212,180,0.22)',
+  // === Primary accent — blue interactive ===
+  teal:      '#2563C4',
+  teal10:    'rgba(37,99,196,0.08)',
+  teal20:    'rgba(37,99,196,0.16)',
+  teal40:    'rgba(37,99,196,0.35)',
+  tealGlow:  'rgba(37,99,196,0.12)',
 
-  // === Accent secondaire — bleu ===
-  blue:    '#3B82F6',
-  blue10:  'rgba(59,130,246,0.10)',
-  blue20:  'rgba(59,130,246,0.20)',
-  blueGlow:'rgba(59,130,246,0.20)',
+  // === Navy primary ===
+  blue:    '#1B4F9B',
+  blue10:  'rgba(27,79,155,0.08)',
+  blue20:  'rgba(27,79,155,0.16)',
+  blueGlow:'rgba(27,79,155,0.12)',
+
+  // === Sky data (big numbers) ===
+  navy:    '#1B4F9B',
+  data:    '#0EA5E9',
+  data10:  'rgba(14,165,233,0.10)',
+  data20:  'rgba(14,165,233,0.18)',
+  dataGlow:'rgba(14,165,233,0.22)',
 
   // === Status ===
-  success:     '#22C55E',
-  success10:   'rgba(34,197,94,0.10)',
-  success20:   'rgba(34,197,94,0.20)',
-  warning:     '#F59E0B',
-  warning10:   'rgba(245,158,11,0.10)',
-  danger:      '#EF4444',
-  danger10:    'rgba(239,68,68,0.10)',
+  success:     '#16A34A',
+  success10:   'rgba(22,163,74,0.10)',
+  success20:   'rgba(22,163,74,0.16)',
+  warning:     '#D97706',
+  warning10:   'rgba(217,119,6,0.10)',
+  danger:      '#DC2626',
+  danger10:    'rgba(220,38,38,0.10)',
 
   // === Text ===
-  textPrimary:   '#F0F4FF',
-  textSecondary: '#8B9CC8',
-  textMuted:     '#4A5578',
-  textInverse:   '#090E1A',
+  textPrimary:   '#0F172A',
+  textSecondary: '#64748B',
+  textMuted:     '#94A3B8',
+  textInverse:   '#F0F4F8',
 } as const;
 
 export type ColorKey = keyof typeof colors;

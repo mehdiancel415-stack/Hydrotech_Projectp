@@ -117,6 +117,6 @@ const styles = StyleSheet.create({
   kvRow: { flexDirection: "row", justifyContent: "space-between" },
   kvLabel: { fontSize: 13, color: theme.textPrimary },
   kvVal: { fontSize: 12, color: theme.textSecondary },
-  actionBtn: { marginTop: 12, backgroundColor: "#0f2040", borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, alignItems: "center" },
-  actionTxt: { fontSize: 13, color: theme.accent },
+  actionBtn: { marginTop: 12, backgroundColor: theme.primary, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, alignItems: "center" },
+  actionTxt: { fontSize: 13, color: theme.textInverse },
 });

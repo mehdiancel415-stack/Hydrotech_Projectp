@@ -4,6 +4,8 @@ import type { Device } from 'react-native-ble-plx';
 import { connectToTurbine, scanForTurbines, stopScan } from '../BLEManager';
 import { TurbineData } from '../bleConfig';
 import { theme } from '../constants/theme';
+import { fontFamily } from '../theme/typography';
+import { colors } from '../theme/colors';
 
 type Props = {
   visible: boolean;
@@ -339,25 +341,25 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: theme.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 0.5, borderColor: theme.primary, paddingBottom: 30, maxHeight: '90%' },
   header: { alignItems: 'center', padding: 16, gap: 8 },
   handle: { width: 36, height: 4, backgroundColor: theme.border, borderRadius: 2 },
-  title: { fontSize: 16, fontWeight: '500', color: theme.textPrimary },
+  title: { fontFamily: fontFamily.display, fontSize: 22, color: theme.textPrimary },
   stateContainer: { padding: 16, alignItems: 'center', gap: 12 },
   iconCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 1.5, borderColor: theme.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   iconTxt: { fontSize: 32 },
-  stateTitle: { fontSize: 16, fontWeight: '500', color: theme.textPrimary, textAlign: 'center' },
-  stateSub: { fontSize: 12, color: theme.textSecondary, textAlign: 'center', lineHeight: 18, paddingHorizontal: 16 },
-  sectionLabel: { fontSize: 9, letterSpacing: 2, color: theme.textSecondary, textTransform: 'uppercase', alignSelf: 'flex-start', marginBottom: 4 },
+  stateTitle: { fontFamily: fontFamily.display, fontSize: 22, color: theme.textPrimary, textAlign: 'center' },
+  stateSub: { fontFamily: fontFamily.light, fontSize: 13, color: theme.textSecondary, textAlign: 'center', lineHeight: 20, paddingHorizontal: 16 },
+  sectionLabel: { fontFamily: fontFamily.semibold, fontSize: 9, letterSpacing: 2, color: theme.textSecondary, textTransform: 'uppercase', alignSelf: 'flex-start', marginBottom: 4 },
   deviceFound: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 10, padding: 10, width: '100%' },
   deviceCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, width: '100%' },
   deviceCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   deviceDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.accent },
-  deviceName: { fontSize: 14, color: theme.textPrimary, fontWeight: '500' },
-  deviceSub: { fontSize: 11, color: theme.textSecondary, marginTop: 2 },
-  connectTxt: { fontSize: 12, color: theme.accent },
-  input: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 10, padding: 12, color: theme.textPrimary, fontSize: 14, width: '100%' },
-  primaryBtn: { backgroundColor: '#0f2040', borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, alignItems: 'center', width: '100%' },
-  primaryBtnTxt: { fontSize: 14, color: theme.accent, fontWeight: '500' },
+  deviceName: { fontFamily: fontFamily.semibold, fontSize: 14, color: theme.textPrimary },
+  deviceSub: { fontFamily: fontFamily.regular, fontSize: 11, color: theme.textSecondary, marginTop: 2 },
+  connectTxt: { fontFamily: fontFamily.medium, fontSize: 12, color: theme.accent },
+  input: { fontFamily: fontFamily.regular, backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 10, padding: 12, color: theme.textPrimary, fontSize: 14, width: '100%' },
+  primaryBtn: { backgroundColor: colors.blue, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, alignItems: 'center', width: '100%' },
+  primaryBtnTxt: { fontFamily: fontFamily.semibold, fontSize: 15, color: colors.textInverse },
   demoBtn: { backgroundColor: 'rgba(212,140,46,0.08)', borderWidth: 0.5, borderColor: theme.warning, borderRadius: 12, padding: 12, alignItems: 'center', width: '100%' },
-  demoTxt: { fontSize: 12, color: theme.warning },
+  demoTxt: { fontFamily: fontFamily.regular, fontSize: 12, color: theme.warning },
   cancelBtn: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 12, padding: 12, alignItems: 'center', width: '100%' },
-  cancelTxt: { fontSize: 13, color: theme.textSecondary },
+  cancelTxt: { fontFamily: fontFamily.regular, fontSize: 13, color: theme.textSecondary },
 });

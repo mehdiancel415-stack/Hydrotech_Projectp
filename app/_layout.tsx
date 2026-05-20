@@ -1,4 +1,4 @@
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
@@ -14,6 +14,14 @@ import {
   JetBrainsMono_500Medium,
   JetBrainsMono_700Bold,
 } from "@expo-google-fonts/jetbrains-mono";
+import {
+  BebasNeue_400Regular,
+} from "@expo-google-fonts/bebas-neue";
+import {
+  Outfit_300Light,
+  Outfit_400Regular,
+  Outfit_600SemiBold,
+} from "@expo-google-fonts/outfit";
 import { useEffect } from "react";
 import { Platform, View, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -37,6 +45,10 @@ export default function RootLayout() {
     JetBrainsMono_400Regular,
     JetBrainsMono_500Medium,
     JetBrainsMono_700Bold,
+    BebasNeue_400Regular,
+    Outfit_300Light,
+    Outfit_400Regular,
+    Outfit_600SemiBold,
   });
 
   useEffect(() => {
@@ -45,8 +57,8 @@ export default function RootLayout() {
         try {
           await NavigationBar.setVisibilityAsync("hidden");
           await NavigationBar.setBehaviorAsync("overlay-swipe");
-          await NavigationBar.setBackgroundColorAsync(theme.bg);
-          await NavigationBar.setButtonStyleAsync("light");
+          await NavigationBar.setBackgroundColorAsync('#F0F4F8');
+          await NavigationBar.setButtonStyleAsync("dark");
         } catch (e) {
           console.log("NavigationBar config error:", e);
         }
@@ -64,13 +76,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.flex}>
       <SafeAreaProvider>
       <TurbinesProvider>
-        <ThemeProvider value={DarkTheme}>
-          <Stack screenOptions={{ contentStyle: { backgroundColor: theme.bg }, headerShown: false }}>
+        <ThemeProvider value={DefaultTheme}>
+          <Stack screenOptions={{ contentStyle: { backgroundColor: '#F0F4F8' }, headerShown: false }}>
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
             <Stack.Screen name="modal" options={{ presentation: "modal" }} />
           </Stack>
-          <StatusBar style="light" hidden={false} />
+          <StatusBar style="dark" hidden={false} />
         </ThemeProvider>
       </TurbinesProvider>
       </SafeAreaProvider>
@@ -79,6 +91,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: theme.bg },
-  fontLoading: { flex: 1, backgroundColor: theme.bg },
+  flex: { flex: 1, backgroundColor: '#F0F4F8' },
+  fontLoading: { flex: 1, backgroundColor: '#F0F4F8' },
 });

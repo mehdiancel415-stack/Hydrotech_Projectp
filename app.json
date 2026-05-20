@@ -4,19 +4,19 @@
     "slug": "hydrotech",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/hydro.png",
+    "icon": "./assets/images/hydro1.png",
     "scheme": "myapp",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#0a0f1a",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFFFFF",
     "androidNavigationBar": {
       "visible": "sticky-immersive",
-      "barStyle": "light-content",
-      "backgroundColor": "#0a0f1a"
+      "barStyle": "dark-content",
+      "backgroundColor": "#F0F4F8"
     },
     "splash": {
-      "image": "./assets/images/hydro.png",
+      "image": "./assets/images/hydro1.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0a0f1a"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
@@ -28,8 +28,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/hydro.png",
-        "backgroundColor": "#0a0f1a"
+        "foregroundImage": "./assets/images/hydro1.png",
+        "monochromeImage": "./assets/images/hydro1.png",
+        "backgroundColor": "#FFFFFF"
       },
       "package": "com.hydrotech.app",
       "permissions": [
@@ -46,7 +47,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/hydro.png"
+      "favicon": "./assets/images/hydro1.png"
     },
     "plugins": [
       "expo-router",
@@ -61,7 +62,10 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "modes": ["peripheral", "central"],
+          "modes": [
+            "peripheral",
+            "central"
+          ],
           "bluetoothAlwaysPermission": "HydroTech utilise le Bluetooth pour se connecter à votre turbine."
         }
       ],
@@ -73,8 +77,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "92715ff2-af2a-4426-9a7e-e41e9e786328"
+        "projectId": "128898a9-11a4-4e0d-9672-2970f1ee1d3f"
       }
-    }
+    },
+    "owner": "hydrotech7"
   }
 }

@@ -42,10 +42,12 @@ async function saveRouteCache(c: Record<string, RouteOption[]>) {
 
 function buildMapHTML(waterfalls: WaterfallWithScore[]): string {
   const wfJson = JSON.stringify(
-    waterfalls.map((w) => ({
-      id: w.id, name: w.name || "", lat: w.lat, lng: w.lng,
-      score: w.score, height: w.height || null, color: scoreColor(w.score),
-    }))
+    waterfalls
+      .filter((w) => w.score >= 4)
+      .map((w) => ({
+        id: w.id, name: w.name || "", lat: w.lat, lng: w.lng,
+        score: w.score, height: w.height || null, color: scoreColor(w.score),
+      }))
   );
 
   return `<!DOCTYPE html>
@@ -58,56 +60,119 @@ function buildMapHTML(waterfalls: WaterfallWithScore[]): string {
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body,#map{width:100%;height:100%;overflow:hidden}
-body{background:#090e1a}
-.leaflet-control-attribution{background:rgba(9,14,26,0.8)!important;color:#4a5578!important;font-size:9px!important}
-.leaflet-control-attribution a{color:#4a5578!important}
-.user-outer{width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center}
-.user-inner{width:14px;height:14px;border-radius:50%;background:#3b82f6;border:2.5px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.6)}
+body{background:#F0F4F8}
+.leaflet-control-attribution{background:rgba(240,244,248,0.85)!important;color:#94A3B8!important;font-size:9px!important}
+.leaflet-control-attribution a{color:#64748B!important}
+
+/* ── Marqueur utilisateur — cercle simple ── */
+.u-wrap{
+  width:28px;height:28px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.u-pulse{
+  position:absolute;width:28px;height:28px;border-radius:50%;
+  background:rgba(27,79,155,0.15);border:1px solid rgba(27,79,155,0.35);
+}
+.u-dot{
+  width:14px;height:14px;border-radius:50%;
+  background:#1B4F9B;border:2.5px solid #fff;
+  box-shadow:0 0 10px rgba(27,79,155,0.7);
+  position:relative;z-index:1;
+}
+
+/* ── Turbine marker ── */
 .t-icon{display:flex;flex-direction:column;align-items:center}
-.t-circle{width:34px;height:34px;border-radius:50%;background:#0d1f35;border:2px solid #00d4b4;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 12px rgba(0,212,180,0.45)}
-.t-badge{background:#0d1f35;border:1px solid #00d4b4;border-radius:5px;padding:1px 4px;margin-top:-3px;font-size:8px;color:#00d4b4;font-family:monospace;white-space:nowrap}
+.t-circle{width:34px;height:34px;border-radius:50%;background:#FAFCFF;border:2px solid #1B4F9B;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 12px rgba(27,79,155,0.25)}
+.t-badge{background:#FAFCFF;border:1px solid #1B4F9B;border-radius:5px;padding:1px 4px;margin-top:-3px;font-size:8px;color:#1B4F9B;font-family:monospace;white-space:nowrap}
 </style>
 </head>
 <body>
 <div id="map"></div>
 <script>
-var map=L.map('map',{zoomControl:false}).setView([46.5,2.35],5.5);
+var map=L.map('map',{zoomControl:false,renderer:L.canvas()}).setView([46.5,2.35],5.5);
 var LAYERS={
-  plan:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CartoDB',maxZoom:19,subdomains:'abcd'}),
+  plan:L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CartoDB',maxZoom:19,subdomains:'abcd'}),
   satellite:L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&hl=fr&x={x}&y={y}&z={z}',{attribution:'&copy; Google',maxZoom:21,subdomains:['0','1','2','3']}),
   hybride:L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&hl=fr&x={x}&y={y}&z={z}',{attribution:'&copy; Google',maxZoom:21,subdomains:['0','1','2','3']})
 };
 var curStyle='hybride';
 LAYERS[curStyle].addTo(map);
+
 var wfs=${wfJson};
-function scoreR(s){return s>=80?9:s>=60?7:5;}
+function scoreR(s){return s>=8?9:s>=6?7:5;}
+
+/* ── LayerGroup pour masquer les chutes quand un itinéraire est actif ── */
+var wfLayer=L.layerGroup().addTo(map);
+
+/* ── Flag : empêche map_tap de fermer la fiche juste après un tap sur chute ── */
+var _wfTapped=false;
+
 wfs.forEach(function(wf){
-  var m=L.circleMarker([wf.lat,wf.lng],{radius:scoreR(wf.score),fillColor:wf.color,color:'#fff',weight:1.5,opacity:1,fillOpacity:0.9}).addTo(map);
-  m.on('click',function(e){L.DomEvent.stopPropagation(e);window.ReactNativeWebView.postMessage(JSON.stringify({type:'wf_tap',id:wf.id}));});
+  var m=L.circleMarker([wf.lat,wf.lng],{
+    radius:scoreR(wf.score),
+    fillColor:wf.color,color:'rgba(255,255,255,0.75)',
+    weight:1.2,opacity:1,fillOpacity:0.88
+  });
+  wfLayer.addLayer(m);
+  m.on('click',function(e){
+    _wfTapped=true;
+    setTimeout(function(){_wfTapped=false;},350);
+    L.DomEvent.stopPropagation(e);
+    window.ReactNativeWebView.postMessage(JSON.stringify({type:'wf_tap',id:wf.id}));
+  });
 });
-var userMarker=null,routeLayer=null,turbineMarkers={};
+
+var userMarker=null, routeLayer=null, turbineMarkers={};
+
+/* ── Icône utilisateur — cercle simple ── */
+function makeUserIcon(){
+  var html='<div class="u-wrap"><div class="u-pulse"></div><div class="u-dot"></div></div>';
+  return L.divIcon({html:html,className:'',iconSize:[28,28],iconAnchor:[14,14]});
+}
+
 function onMsg(e){
   try{
     var msg=JSON.parse(e.data);
+
     if(msg.type==='set_location'){
       var ll=[msg.lat,msg.lng];
-      if(!userMarker){var ico=L.divIcon({html:'<div class="user-outer"><div class="user-inner"></div></div>',className:'',iconSize:[24,24],iconAnchor:[12,12]});userMarker=L.marker(ll,{icon:ico,zIndexOffset:1000}).addTo(map);}
-      else{userMarker.setLatLng(ll);}
-    }
-    if(msg.type==='set_style'){map.removeLayer(LAYERS[curStyle]);curStyle=msg.style;LAYERS[curStyle].addTo(map);}
-    if(msg.type==='fly_to'){map.flyTo([msg.lat,msg.lng],msg.zoom||14,{duration:0.8});}
-    if(msg.type==='fly_to_user'){if(userMarker)map.flyTo(userMarker.getLatLng(),14,{duration:0.8});}
-    if(msg.type==='zoom_in'){map.setZoom(map.getZoom()+1);}
-    if(msg.type==='zoom_out'){map.setZoom(map.getZoom()-1);}
-    if(msg.type==='show_route'){
-      if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
-      if(msg.coords&&msg.coords.length>1){
-        var lls=msg.coords.map(function(c){return[c.latitude,c.longitude];});
-        routeLayer=L.polyline(lls,{color:msg.mode==='foot'?'#60a5fa':'#3b82f6',weight:4,opacity:0.85,dashArray:msg.mode==='foot'?'7,9':null}).addTo(map);
-        map.fitBounds(routeLayer.getBounds(),{padding:[100,60]});
+      if(!userMarker){
+        userMarker=L.marker(ll,{icon:makeUserIcon(),zIndexOffset:1000}).addTo(map);
+      } else {
+        userMarker.setLatLng(ll);
+      }
+      if(msg.follow){
+        map.panTo(ll,{animate:true,duration:0.4,easeLinearity:0.5});
       }
     }
-    if(msg.type==='clear_route'){if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}}
+
+    if(msg.type==='set_style'){map.removeLayer(LAYERS[curStyle]);curStyle=msg.style;LAYERS[curStyle].addTo(map);}
+    if(msg.type==='fly_to'){map.flyTo([msg.lat,msg.lng],msg.zoom||14,{duration:0.8});}
+    if(msg.type==='fly_to_user'){if(userMarker)map.flyTo(userMarker.getLatLng(),15,{duration:0.8});}
+    if(msg.type==='zoom_in'){map.setZoom(map.getZoom()+1);}
+    if(msg.type==='zoom_out'){map.setZoom(map.getZoom()-1);}
+
+    if(msg.type==='show_route'){
+      if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+      /* Masquer les chutes pendant qu'un itinéraire est affiché */
+      if(map.hasLayer(wfLayer))map.removeLayer(wfLayer);
+      if(msg.coords&&msg.coords.length>1){
+        var lls=msg.coords.map(function(c){return[c.latitude,c.longitude];});
+        routeLayer=L.polyline(lls,{
+          color:msg.mode==='foot'?'#2563C4':'#1B4F9B',
+          weight:5,opacity:0.92,
+          dashArray:msg.mode==='foot'?'8,11':null
+        }).addTo(map);
+        map.fitBounds(routeLayer.getBounds(),{padding:[80,50],maxZoom:15});
+      }
+    }
+
+    if(msg.type==='clear_route'){
+      if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+      /* Réafficher les chutes quand l'itinéraire est effacé */
+      if(!map.hasLayer(wfLayer))wfLayer.addTo(map);
+    }
+
     if(msg.type==='set_turbines'){
       Object.keys(turbineMarkers).forEach(function(id){map.removeLayer(turbineMarkers[id]);});turbineMarkers={};
       (msg.turbines||[]).forEach(function(t){
@@ -119,7 +184,15 @@ function onMsg(e){
   }catch(err){}
 }
 window.addEventListener('message',onMsg);document.addEventListener('message',onMsg);
-map.on('click',function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_tap'}));});
+
+/* ── Tap simple (double-tap ignoré, tap sur chute ignoré) ── */
+var _tapTimer=null;
+map.on('click',function(){
+  /* Si une chute vient d'être tappée, ne pas fermer la fiche */
+  if(_wfTapped){return;}
+  if(_tapTimer){clearTimeout(_tapTimer);_tapTimer=null;return;}
+  _tapTimer=setTimeout(function(){_tapTimer=null;window.ReactNativeWebView.postMessage(JSON.stringify({type:'map_tap'}));},280);
+});
 </script>
 </body>
 </html>`;
@@ -137,7 +210,14 @@ export default function MapScreen() {
   const [forecast, setForecast] = useState<{ rainLast7days: number; impact: string; label: string } | null>(null);
   const [mapStyle, setMapStyle] = useState<StyleId>("hybride");
   const [mapReady, setMapReady] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // Refs stables pour les callbacks async
   const routeCache = useRef<Record<string, RouteOption[]>>({});
+  const locationSubRef = useRef<Location.LocationSubscription | null>(null);
+  const isFollowingRef = useRef(false);
+  const mapReadyRef = useRef(false);
+  const locationRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
   const waterfalls = useMemo<WaterfallWithScore[]>(
     () => ALL_WATERFALLS.map((w) => ({ ...w, score: staticScore(w) })),
@@ -152,6 +232,7 @@ export default function MapScreen() {
     );
   }, []);
 
+  // ── Init ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     loadRouteCache().then((c) => { routeCache.current = c; });
     AsyncStorage.getItem(STYLE_PREF_KEY).then((s) => {
@@ -159,21 +240,53 @@ export default function MapScreen() {
     });
   }, []);
 
+  // ── GPS temps réel ─────────────────────────────────────────────────────────
   useEffect(() => {
+    let active = true;
+
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-      setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      if (status !== "granted" || !active) return;
+
+      const sub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1500,
+          distanceInterval: 4, // ignore updates < 4m pour éviter le jitter
+        },
+        (loc) => {
+          const { latitude, longitude, heading } = loc.coords;
+          const pos = { latitude, longitude };
+          setLocation(pos);
+          locationRef.current = pos;
+
+          if (!mapReadyRef.current) return;
+
+          postMsg({
+            type: "set_location",
+            lat: latitude,
+            lng: longitude,
+            heading: heading ?? -1,
+            follow: isFollowingRef.current,
+          });
+        }
+      );
+
+      if (active) {
+        locationSubRef.current = sub;
+      } else {
+        sub.remove();
+      }
     })();
-  }, []);
 
-  useEffect(() => {
-    if (!mapReady || !location) return;
-    postMsg({ type: "set_location", lat: location.latitude, lng: location.longitude });
-    postMsg({ type: "fly_to", lat: location.latitude, lng: location.longitude, zoom: 12 });
-  }, [mapReady, location, postMsg]);
+    return () => {
+      active = false;
+      locationSubRef.current?.remove();
+      locationSubRef.current = null;
+    };
+  }, [postMsg]);
 
+  // ── Turbines ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapReady) return;
     postMsg({
@@ -184,27 +297,54 @@ export default function MapScreen() {
     });
   }, [mapReady, turbines, postMsg]);
 
+  // ── Style ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapReady) return;
     postMsg({ type: "set_style", style: mapStyle });
   }, [mapReady, mapStyle, postMsg]);
 
+  // ── Quand la carte est prête, envoyer la position si déjà connue ───────────
+  const handleMapLoad = useCallback(() => {
+    mapReadyRef.current = true;
+    setMapReady(true);
+    const pos = locationRef.current;
+    if (pos) {
+      postMsg({ type: "set_location", lat: pos.latitude, lng: pos.longitude, heading: -1, follow: false });
+      postMsg({ type: "fly_to", lat: pos.latitude, lng: pos.longitude, zoom: 13 });
+    }
+  }, [postMsg]);
+
+  // ── Toggle mode suivi ──────────────────────────────────────────────────────
+  const toggleFollow = useCallback(() => {
+    const next = !isFollowingRef.current;
+    isFollowingRef.current = next;
+    setIsFollowing(next);
+    if (next && locationRef.current) {
+      postMsg({ type: "fly_to_user" });
+    }
+  }, [postMsg]);
+
+  // ── Messages depuis la carte ───────────────────────────────────────────────
   const handleMessage = useCallback(async (event: { nativeEvent: { data: string } }) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
       if (msg.type === "wf_tap") {
         const wf = waterfalls.find((w) => w.id === msg.id);
         if (!wf) return;
+        // Désactiver le suivi pour voir la chute sélectionnée
+        isFollowingRef.current = false;
+        setIsFollowing(false);
         setSelectedWf(wf); setRoutes([]); setActiveRoute(null); setForecast(null);
         postMsg({ type: "fly_to", lat: wf.lat, lng: wf.lng, zoom: 14 });
         fetchRiverForecast(wf.lat, wf.lng).then((f) => f && setForecast(f));
         const cacheKey = String(wf.id);
         if (routeCache.current[cacheKey]) { setRoutes(routeCache.current[cacheKey]); return; }
-        if (!location) return;
+        if (!locationRef.current) return;
         setRouteLoading(true);
+        const loc = locationRef.current;
         const fetchRoute = async (mode: "foot" | "car"): Promise<RouteOption | null> => {
           try {
-            const url = `https://router.project-osrm.org/route/v1/${mode}/${location.longitude},${location.latitude};${wf.lng},${wf.lat}?overview=full&geometries=geojson`;
+            const url = `https://router.project-osrm.org/route/v1/${mode}/${loc.longitude},${loc.latitude};${wf.lng},${wf.lat}?overview=full&geometries=geojson`;
             const ctrl = new AbortController();
             const t = setTimeout(() => ctrl.abort(), 8000);
             const res = await fetch(url, { signal: ctrl.signal });
@@ -231,7 +371,7 @@ export default function MapScreen() {
         postMsg({ type: "clear_route" });
       }
     } catch {}
-  }, [waterfalls, location, postMsg]);
+  }, [waterfalls, postMsg]);
 
   const selectRoute = (r: RouteOption) => {
     setActiveRoute(r);
@@ -244,15 +384,11 @@ export default function MapScreen() {
     AsyncStorage.setItem(STYLE_PREF_KEY, next).catch(() => {});
   };
 
-  const goToMyLocation = async () => {
-    if (location) { postMsg({ type: "fly_to_user" }); return; }
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
-    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-    setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-    postMsg({ type: "set_location", lat: loc.coords.latitude, lng: loc.coords.longitude });
-    postMsg({ type: "fly_to", lat: loc.coords.latitude, lng: loc.coords.longitude, zoom: 14 });
-  };
+  const goToMyLocation = useCallback(() => {
+    if (locationRef.current) {
+      postMsg({ type: "fly_to_user" });
+    }
+  }, [postMsg]);
 
   const closeOverlay = () => {
     setSelectedWf(null); setRoutes([]); setActiveRoute(null); setForecast(null);
@@ -265,7 +401,7 @@ export default function MapScreen() {
         ref={webRef}
         source={{ html: mapHTML }}
         style={StyleSheet.absoluteFillObject}
-        onLoad={() => setMapReady(true)}
+        onLoad={handleMapLoad}
         onMessage={handleMessage}
         javaScriptEnabled
         domStorageEnabled
@@ -305,9 +441,19 @@ export default function MapScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* LOCATION */}
+      {/* BOUTON SUIVI */}
+      <TouchableOpacity
+        style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+        onPress={toggleFollow}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.followIcon}>🧭</Text>
+        {isFollowing && <Text style={styles.followLbl}>Suivi</Text>}
+      </TouchableOpacity>
+
+      {/* BOUTON MA POSITION */}
       <TouchableOpacity style={styles.locBtn} onPress={goToMyLocation} activeOpacity={0.7}>
-        <Text style={styles.locIcon}>◎</Text>
+        <Text style={styles.locIcon}>➤</Text>
       </TouchableOpacity>
 
       {/* TURBINES STATS */}
@@ -366,7 +512,7 @@ export default function MapScreen() {
             </View>
           ) : routes.length === 0 ? (
             <View style={styles.loadingWrap}>
-              <Text style={styles.loadingTxt}>{location ? "Itinéraire indisponible" : "Position GPS requise"}</Text>
+              <Text style={styles.loadingTxt}>{locationRef.current ? "Itinéraire indisponible" : "Position GPS requise"}</Text>
             </View>
           ) : (
             <View style={styles.routesRow}>
@@ -397,10 +543,10 @@ const styles = StyleSheet.create({
   headerGlass: {
     position: "absolute", top: 56, left: 16, right: 16,
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: "rgba(9,14,26,0.88)", borderRadius: 24,
+    backgroundColor: "rgba(250,252,255,0.94)", borderRadius: 24,
     paddingHorizontal: 16, paddingVertical: 12,
     borderWidth: 0.5, borderColor: theme.border,
-    shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 12,
+    shadowColor: theme.primary, shadowOpacity: 0.12, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 8,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.accent },
@@ -415,25 +561,43 @@ const styles = StyleSheet.create({
   styleLbl: { fontFamily: fontFamily.semibold, fontSize: 11, color: theme.accent },
   rightControls: {
     position: "absolute", right: 16, top: 130,
-    backgroundColor: "rgba(9,14,26,0.92)", borderRadius: 14, overflow: "hidden",
+    backgroundColor: "rgba(250,252,255,0.95)", borderRadius: 14, overflow: "hidden",
     borderWidth: 0.5, borderColor: theme.border,
-    shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 8,
+    shadowColor: theme.primary, shadowOpacity: 0.10, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
   ctrlBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   ctrlIcon: { fontFamily: fontFamily.semibold, fontSize: 20, color: theme.textPrimary, lineHeight: 22 },
   ctrlSeparator: { height: 0.5, backgroundColor: theme.border },
+
+  // Bouton suivi
+  followBtn: {
+    position: "absolute", right: 16, bottom: 170,
+    width: 50, height: 50, borderRadius: 25,
+    backgroundColor: "rgba(250,252,255,0.95)", borderWidth: 1, borderColor: theme.border,
+    alignItems: "center", justifyContent: "center",
+    shadowColor: theme.primary, shadowOpacity: 0.10, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  followBtnActive: {
+    backgroundColor: theme.accent + "20",
+    borderColor: theme.accent,
+    shadowColor: theme.accent, shadowOpacity: 0.6, shadowRadius: 14,
+    width: 70, borderRadius: 25, flexDirection: "row", gap: 4, paddingHorizontal: 10,
+  },
+  followIcon: { fontSize: 20 },
+  followLbl: { fontFamily: fontFamily.semibold, fontSize: 11, color: theme.accent },
+
   locBtn: {
     position: "absolute", right: 16, bottom: 110,
     width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "rgba(9,14,26,0.95)", borderWidth: 1, borderColor: theme.accent,
+    backgroundColor: "rgba(250,252,255,0.95)", borderWidth: 1.5, borderColor: theme.accent,
     alignItems: "center", justifyContent: "center",
-    shadowColor: theme.accent, shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 12,
+    shadowColor: theme.accent, shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8,
   },
   locIcon: { fontSize: 22, color: theme.accent },
   statsOverlay: {
     position: "absolute", left: 16, right: 16, bottom: 100, flexDirection: "row",
-    backgroundColor: "rgba(9,14,26,0.92)", borderRadius: 20, borderWidth: 1, borderColor: colors.border,
-    paddingVertical: 14, shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 16, elevation: 12,
+    backgroundColor: "rgba(250,252,255,0.96)", borderRadius: 20, borderWidth: 0.5, borderColor: theme.border,
+    paddingVertical: 14, shadowColor: theme.primary, shadowOpacity: 0.10, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
   statItem: { flex: 1, alignItems: "center", gap: 3 },
   statVal: { fontFamily: fontFamily.monoBold, fontSize: 18, color: colors.textPrimary, letterSpacing: -0.5 },
@@ -443,7 +607,7 @@ const styles = StyleSheet.create({
     position: "absolute", left: 16, right: 16, bottom: 96,
     backgroundColor: theme.bgCard, borderRadius: 24, borderWidth: 0.5, borderColor: theme.border,
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 10,
-    shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 16,
+    shadowColor: theme.primary, shadowOpacity: 0.14, shadowRadius: 24, shadowOffset: { width: 0, height: 8 }, elevation: 10,
   },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.border, alignSelf: "center", marginTop: 4, marginBottom: 6 },
   sheetHead: { flexDirection: "row", alignItems: "center", gap: 10 },

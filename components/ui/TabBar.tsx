@@ -58,7 +58,7 @@ export default function TabBar({ state, navigation }: Props) {
 
       {routes.map((route, i) => {
         const focused = i === activeIdx;
-        const iconColor = focused ? colors.teal : colors.textMuted;
+        const iconColor = focused ? '#FFFFFF' : 'rgba(255,255,255,0.5)';
         const iconName = ICONS[route.name] ?? 'circle';
 
         return (
@@ -89,16 +89,16 @@ const styles = StyleSheet.create({
     width: BAR_W,
     height: TAB_H,
     flexDirection: 'row',
-    backgroundColor: 'rgba(15,22,41,0.97)',
+    backgroundColor: '#1B4F9B',
     borderRadius: 26,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.18)',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.6,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 20,
+    shadowColor: '#1B4F9B',
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 16,
   },
   activePill: {
     position: 'absolute',
@@ -106,9 +106,9 @@ const styles = StyleSheet.create({
     left: 0,
     height: TAB_H - 16,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,212,180,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(0,212,180,0.18)',
+    borderColor: 'rgba(255,255,255,0.28)',
   },
   tab: {
     flex: 1,

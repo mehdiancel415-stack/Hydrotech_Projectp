@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   separator: { height: 0.5, backgroundColor: theme.border, marginHorizontal: 14 },
   rateRow: { flexDirection: "row", gap: 6 },
   rateBtn: { backgroundColor: theme.bg, borderWidth: 0.5, borderColor: theme.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  rateBtnActive: { borderColor: theme.primary, backgroundColor: "#0f2040" },
+  rateBtnActive: { borderColor: theme.primary, backgroundColor: theme.primaryDim },
   rateTxt: { fontSize: 12, color: theme.textSecondary },
   rateTxtActive: { color: theme.accent },
   turbineRow: { flexDirection: "row", alignItems: "center", gap: 6 },

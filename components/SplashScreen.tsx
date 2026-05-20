@@ -1,15 +1,8 @@
 import { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, Animated, Image } from "react-native";
 import { preloadWaterways } from "./MapCacheManager";
 
-const { width, height } = Dimensions.get("window");
+const DURATION = 5000; // 5 secondes
 
 type Props = {
   onFinish: () => void;
@@ -17,207 +10,127 @@ type Props = {
   onWaterwaysLoaded?: (ways: any[]) => void;
 };
 
-export default function SplashScreen({
-  onFinish,
-  location,
-  onWaterwaysLoaded,
-}: Props) {
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(1.15)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleY = useRef(new Animated.Value(16)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const loadingOpacity = useRef(new Animated.Value(0)).current;
-  const loadingWidth = useRef(new Animated.Value(0)).current;
+export default function SplashScreen({ onFinish, location, onWaterwaysLoaded }: Props) {
+  const barProgress   = useRef(new Animated.Value(0)).current;
+  const fadeIn        = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.sequence([
-      // Logo fond + zoom léger simultané — très fluide
-      Animated.parallel([
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoScale, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // Titre + sous-titre glissent ensemble
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(titleY, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(subtitleOpacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // Barre apparaît
-      Animated.timing(loadingOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-
-      // Chargement réaliste
-      Animated.timing(loadingWidth, {
-        toValue: 0.35,
-        duration: 600,
-        useNativeDriver: false,
-      }),
-      Animated.delay(250),
-      Animated.timing(loadingWidth, {
-        toValue: 0.65,
-        duration: 700,
-        useNativeDriver: false,
-      }),
-      Animated.delay(350),
-      Animated.timing(loadingWidth, {
-        toValue: 0.85,
-        duration: 500,
-        useNativeDriver: false,
-      }),
-      Animated.delay(400),
-      Animated.timing(loadingWidth, {
+      // Apparition du contenu
+      Animated.timing(fadeIn, {
         toValue: 1,
         duration: 400,
+        useNativeDriver: true,
+      }),
+      // Barre de chargement linéaire — 5 secondes
+      Animated.timing(barProgress, {
+        toValue: 1,
+        duration: DURATION,
         useNativeDriver: false,
       }),
-
-      Animated.delay(500),
-
       // Disparition douce
       Animated.timing(screenOpacity, {
         toValue: 0,
-        duration: 700,
+        duration: 400,
         useNativeDriver: true,
       }),
     ]).start(() => onFinish());
   }, []);
-  useEffect(() => {
-  if (location) {
-    preloadWaterways(
-      location.latitude,
-      location.longitude,
-      (ways) => onWaterwaysLoaded?.(ways)
-    );
-  }
-}, [location]);
 
-  const barWidth = loadingWidth.interpolate({
+  useEffect(() => {
+    if (location) {
+      preloadWaterways(location.latitude, location.longitude, (ways) =>
+        onWaterwaysLoaded?.(ways),
+      );
+    }
+  }, [location]);
+
+  const fillWidth = barProgress.interpolate({
     inputRange: [0, 1],
     outputRange: ["0%", "100%"],
   });
 
   return (
-    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
-      {/* LOGO */}
-      <Animated.View
-        style={[
-          styles.logoWrap,
-          {
-            opacity: logoOpacity,
-            transform: [{ scale: logoScale }],
-          },
-        ]}
-      >
-        <Image
-          source={require("../assets/images/hydro.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </Animated.View>
+    <Animated.View style={[s.container, { opacity: screenOpacity }]}>
+      <Animated.View style={[s.content, { opacity: fadeIn }]}>
 
-      {/* TITRE */}
-      <Animated.View
-        style={{
-          opacity: titleOpacity,
-          transform: [{ translateY: titleY }],
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
-        <Text style={styles.title}>HYDROTECH</Text>
-        <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-          Énergie hydraulique portable
-        </Animated.Text>
-      </Animated.View>
-
-      {/* BARRE DE CHARGEMENT */}
-      <Animated.View
-        style={[styles.loadingBarWrap, { opacity: loadingOpacity }]}
-      >
-        <View style={styles.loadingBar}>
-          <Animated.View style={[styles.loadingFill, { width: barWidth }]} />
-          <Animated.View style={[styles.loadingShimmer, { width: barWidth }]} />
+        {/* Logo */}
+        <View style={s.logoWrap}>
+          <Image
+            source={require("../assets/images/hydro1.png")}
+            style={s.logo}
+            resizeMode="contain"
+          />
         </View>
+
+        {/* Nom de l'app */}
+        <Text style={s.appName}>HYDROTECH</Text>
+        <Text style={s.tagline}>Énergie hydraulique portable</Text>
+
+        {/* Barre de chargement */}
+        <View style={s.barWrap}>
+          <View style={s.barTrack}>
+            <Animated.View style={[s.barFill, { width: fillWidth }]} />
+          </View>
+        </View>
+
       </Animated.View>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#0a0f1a",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 999,
-    gap: 20,
   },
-  logoWrap: {
+  content: {
     alignItems: "center",
-    justifyContent: "center",
+    gap: 8,
   },
-  logo: { width: 220, height: 220 },
-  title: {
-    fontSize: 30,
-    fontWeight: "500",
-    color: "#5ba3d9",
-    letterSpacing: 8,
+
+  // Logo
+  logoWrap: {
+    marginBottom: 12,
   },
-  subtitle: {
+  logo: {
+    width: 110,
+    height: 110,
+  },
+
+  // Textes
+  appName: {
+    fontSize: 28,
+    fontFamily: "BebasNeue_400Regular",
+    color: "#1B4F9B",
+    letterSpacing: 6,
+  },
+  tagline: {
     fontSize: 12,
-    color: "#6b8aaa",
-    letterSpacing: 2,
+    fontFamily: "Outfit_300Light",
+    color: "#94A3B8",
+    letterSpacing: 1.5,
+    marginBottom: 36,
   },
-  loadingBarWrap: {
+
+  // Barre
+  barWrap: {
     width: 180,
-    marginTop: 8,
   },
-  loadingBar: {
+  barTrack: {
     width: "100%",
     height: 2,
-    backgroundColor: "#1a2d4a",
+    backgroundColor: "#E2EAF4",
     borderRadius: 2,
     overflow: "hidden",
-    position: "relative",
   },
-  loadingFill: {
-    position: "absolute",
+  barFill: {
     height: "100%",
-    backgroundColor: "#3d7eb5",
+    backgroundColor: "#1B4F9B",
     borderRadius: 2,
-  },
-  loadingShimmer: {
-    position: "absolute",
-    height: "100%",
-    backgroundColor: "#5ba3d9",
-    borderRadius: 2,
-    opacity: 0.3,
   },
 });

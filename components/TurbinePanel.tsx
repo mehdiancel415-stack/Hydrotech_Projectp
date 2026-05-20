@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   turbineTime: { fontSize: 10, color: theme.textSecondary, marginTop: 1 },
   editBtn: { backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   editTxt: { color: theme.accent, fontSize: 11 },
-  deleteBtn: { backgroundColor: '#1a0808', borderWidth: 0.5, borderColor: theme.danger, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  deleteBtn: { backgroundColor: theme.dangerDim, borderWidth: 0.5, borderColor: theme.danger, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   deleteTxt: { color: theme.danger, fontSize: 11 },
   scroll: { flex: 1 },
   bigRingWrap: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 14, padding: 14, marginBottom: 10 },
@@ -182,6 +182,6 @@ const styles = StyleSheet.create({
   noBatteryIcon: { fontSize: 32 },
   noBatteryTitle: { fontSize: 14, color: theme.textPrimary, fontWeight: '500' },
   noBatterySub: { fontSize: 11, color: theme.textSecondary, textAlign: 'center', lineHeight: 16 },
-  addBatteryBtn: { backgroundColor: '#0f2040', borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 16 },
-  addBatteryTxt: { fontSize: 14, color: theme.accent, fontWeight: '500' },
+  addBatteryBtn: { backgroundColor: theme.primary, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 16 },
+  addBatteryTxt: { fontSize: 14, color: theme.textInverse },
 });

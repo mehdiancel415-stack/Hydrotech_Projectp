@@ -28,7 +28,7 @@ export default function CustomSwitch({ value, onValueChange, disabled }: Props) 
   }));
 
   const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(0,212,180,${trackOpacity.value * 0.9})`,
+    backgroundColor: `rgba(27,79,155,${trackOpacity.value * 0.9})`,
   }));
 
   const toggle = () => {

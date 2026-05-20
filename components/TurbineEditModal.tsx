@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 8, marginTop: 12 },
   cancelBtn: { flex: 1, backgroundColor: theme.bgCard, borderWidth: 0.5, borderColor: theme.border, borderRadius: 10, padding: 12, alignItems: "center" },
   cancelTxt: { fontSize: 13, color: theme.textSecondary },
-  saveBtn: { flex: 1, backgroundColor: "#0f2040", borderWidth: 0.5, borderColor: theme.primary, borderRadius: 10, padding: 12, alignItems: "center" },
-  saveTxt: { fontSize: 13, color: theme.accent, fontWeight: "500" },
-  deleteBtn: { flex: 1, backgroundColor: "#1a0808", borderWidth: 0.5, borderColor: theme.danger, borderRadius: 10, padding: 12, alignItems: "center" },
+  saveBtn: { flex: 1, backgroundColor: theme.primary, borderWidth: 0.5, borderColor: theme.primary, borderRadius: 10, padding: 12, alignItems: "center" },
+  saveTxt: { fontSize: 13, color: theme.textInverse },
+  deleteBtn: { flex: 1, backgroundColor: theme.dangerDim, borderWidth: 0.5, borderColor: theme.danger, borderRadius: 10, padding: 12, alignItems: "center" },
   deleteTxt: { fontSize: 13, color: theme.danger },
 });

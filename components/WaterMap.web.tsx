@@ -28,7 +28,7 @@ export default function WaterMap(_props: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0a0f1a",
+    backgroundColor: "#F0F4F8",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,

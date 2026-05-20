@@ -18,25 +18,25 @@ function HydroIllustration() {
   return (
     <Svg width={W} height={280} viewBox={`0 0 ${W} 280`}>
       {/* Ciel gradient */}
-      <Ellipse cx={W / 2} cy={-20} rx={W * 0.9} ry={180} fill="rgba(0,212,180,0.04)" />
+      <Ellipse cx={W / 2} cy={-20} rx={W * 0.9} ry={180} fill="rgba(27,79,155,0.04)" />
 
       {/* Collines arrière-plan */}
       <Path d={`M0 200 Q${W * 0.25} 120 ${W * 0.5} 160 Q${W * 0.75} 200 ${W} 140 L${W} 280 L0 280 Z`}
-        fill="rgba(0,212,180,0.06)" />
+        fill="rgba(27,79,155,0.06)" />
       <Path d={`M0 230 Q${W * 0.3} 170 ${W * 0.6} 200 Q${W * 0.8} 220 ${W} 180 L${W} 280 L0 280 Z`}
-        fill="rgba(0,212,180,0.09)" />
+        fill="rgba(27,79,155,0.09)" />
 
       {/* Rivière */}
       <Path d={`M0 245 Q${W * 0.2} 235 ${W * 0.4} 242 Q${W * 0.6} 250 ${W * 0.8} 240 Q${W * 0.9} 236 ${W} 238 L${W} 270 L0 270 Z`}
-        fill="rgba(0,212,180,0.15)" />
+        fill="rgba(27,79,155,0.15)" />
       <Path d={`M0 255 Q${W * 0.3} 248 ${W * 0.55} 253 Q${W * 0.75} 258 ${W} 250 L${W} 280 L0 280 Z`}
-        fill="rgba(0,212,180,0.10)" />
+        fill="rgba(27,79,155,0.10)" />
 
       {/* Turbine — corps */}
       <Rect x={W / 2 - 12} y={130} width={24} height={100} rx={6} fill={colors.bgElevated}
         stroke={colors.borderTeal} strokeWidth={1.5} />
       {/* Turbine — roue */}
-      <Circle cx={W / 2} cy={168} r={38} fill="rgba(0,212,180,0.08)"
+      <Circle cx={W / 2} cy={168} r={38} fill="rgba(27,79,155,0.08)"
         stroke={colors.teal} strokeWidth={1.5} />
       <Circle cx={W / 2} cy={168} r={28} fill={colors.bgSurface}
         stroke={colors.borderTeal} strokeWidth={1} />
@@ -71,7 +71,7 @@ function HydroIllustration() {
       <Path d={`M${W * 0.86} 135 L${W * 0.9} 135`} stroke={colors.bgElevated} strokeWidth={2} />
 
       {/* Halo glow */}
-      <Circle cx={W / 2} cy={168} r={55} fill="rgba(0,212,180,0.04)" />
+      <Circle cx={W / 2} cy={168} r={55} fill="rgba(27,79,155,0.04)" />
     </Svg>
   );
 }
@@ -101,7 +101,7 @@ function FloatingDot({ x, delay, size = 4 }: { x: number; delay: number; size?: 
     <Animated.View style={[{
       position: 'absolute', left: x, top: 90,
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: colors.teal,
+      backgroundColor: colors.blue,
     }, style]} />
   );
 }
@@ -198,21 +198,21 @@ const s = StyleSheet.create({
   orb1: {
     position: 'absolute', top: -80, left: -60,
     width: 280, height: 280, borderRadius: 140,
-    backgroundColor: 'rgba(0,212,180,0.07)',
+    backgroundColor: 'rgba(27,79,155,0.07)',
   },
   orb2: {
     position: 'absolute', bottom: 60, right: -80,
     width: 240, height: 240, borderRadius: 120,
-    backgroundColor: 'rgba(59,130,246,0.06)',
+    backgroundColor: 'rgba(37,99,196,0.06)',
   },
 
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.teal,
-    shadowColor: colors.teal, shadowOpacity: 0.9, shadowRadius: 8, elevation: 4,
+    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.blue,
+    shadowColor: colors.blue, shadowOpacity: 0.6, shadowRadius: 8, elevation: 4,
   },
   logoText: {
-    fontFamily: fontFamily.bold, fontSize: 13, letterSpacing: 3.5,
+    fontFamily: fontFamily.display, fontSize: 13, letterSpacing: 3.5,
     color: colors.textPrimary, textTransform: 'uppercase',
   },
 
@@ -220,11 +220,11 @@ const s = StyleSheet.create({
 
   textWrap: { paddingHorizontal: 32, alignItems: 'center', gap: 14 },
   title: {
-    fontFamily: fontFamily.bold, fontSize: 34, color: colors.textPrimary,
-    textAlign: 'center', letterSpacing: -0.8, lineHeight: 42,
+    fontFamily: fontFamily.display, fontSize: 48, color: colors.textPrimary,
+    textAlign: 'center', letterSpacing: 1, lineHeight: 52,
   },
   subtitle: {
-    fontFamily: fontFamily.regular, fontSize: 15, color: colors.textSecondary,
+    fontFamily: fontFamily.light, fontSize: 15, color: colors.textSecondary,
     textAlign: 'center', lineHeight: 22,
   },
 
@@ -235,16 +235,16 @@ const s = StyleSheet.create({
     borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
   },
   featIcon: { fontSize: 14 },
-  featLabel: { fontFamily: fontFamily.medium, fontSize: 12, color: colors.textSecondary },
+  featLabel: { fontFamily: fontFamily.regular, fontSize: 12, color: colors.textSecondary },
 
   ctaWrap: { width: '100%', paddingHorizontal: 32, alignItems: 'center', gap: 12 },
   ctaBtn: {
-    width: '100%', backgroundColor: colors.teal,
+    width: '100%', backgroundColor: colors.blue,
     borderRadius: 18, paddingVertical: 18,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.teal, shadowOpacity: 0.45, shadowRadius: 24,
+    shadowColor: colors.blue, shadowOpacity: 0.45, shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 }, elevation: 16,
   },
-  ctaTxt: { fontFamily: fontFamily.bold, fontSize: 16, color: colors.bgBase, letterSpacing: 0.2 },
+  ctaTxt: { fontFamily: fontFamily.semibold, fontSize: 16, color: colors.textInverse, letterSpacing: 0.2 },
   ctaNote: { fontFamily: fontFamily.regular, fontSize: 12, color: colors.textMuted },
 });

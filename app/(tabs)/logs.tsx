@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, Layout } from 'react-native-reanimated';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { spacing, radius } from '../../theme/spacing';
@@ -31,8 +31,19 @@ function relativeTime(ms: number): string {
   return `il y a ${Math.floor(h / 24)}j`;
 }
 
-function SessionCard({ session, index, expanded, onToggle }: {
-  session: Session; index: number; expanded: boolean; onToggle: () => void;
+function formatDate(ms: number): string {
+  const d = new Date(ms);
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+    + ' · '
+    + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function SessionCard({ session, index, expanded, onToggle, onDelete }: {
+  session: Session;
+  index: number;
+  expanded: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
 }) {
   const isActive = session.endedAt === null;
   const duration = (session.endedAt || Date.now()) - session.startedAt;
@@ -47,32 +58,46 @@ function SessionCard({ session, index, expanded, onToggle }: {
     >
       <TouchableOpacity onPress={onToggle} activeOpacity={0.85}>
         {/* Colored top bar */}
-        <View style={[s.cardBar, { backgroundColor: isActive ? colors.success : colors.textMuted }]} />
+        <View style={[s.cardBar, { backgroundColor: isActive ? colors.blue : colors.borderMedium }]} />
 
         <View style={s.cardBody}>
           {/* Top row */}
           <View style={s.cardTop}>
             <View style={s.cardLeft}>
               <Text style={s.cardName}>{session.turbineName}</Text>
-              <Text style={s.cardMeta}>{relativeTime(session.startedAt)} · {durStr}</Text>
+              <Text style={s.cardMeta}>{formatDate(session.startedAt)}</Text>
+              <Text style={s.cardDur}>{relativeTime(session.startedAt)} · {durStr}</Text>
             </View>
-            {isActive ? (
-              <View style={s.activePill}>
-                <View style={s.activeDot} />
-                <Text style={s.activeTxt}>EN COURS</Text>
-              </View>
-            ) : (
-              <View style={s.endedPill}>
-                <Text style={s.endedTxt}>Terminée</Text>
-              </View>
-            )}
+            <View style={s.cardRight}>
+              {isActive ? (
+                <View style={s.activePill}>
+                  <View style={s.activeDot} />
+                  <Text style={s.activeTxt}>EN COURS</Text>
+                </View>
+              ) : (
+                <View style={s.endedPill}>
+                  <Text style={s.endedTxt}>Terminée</Text>
+                </View>
+              )}
+              {/* Delete button — uniquement sur sessions terminées */}
+              {!isActive && (
+                <TouchableOpacity
+                  style={s.deleteBtn}
+                  onPress={(e) => { e.stopPropagation?.(); onDelete(); }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={s.deleteTxt}>🗑</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Stats chips */}
           <View style={s.chipsRow}>
-            <View style={[s.chip, { borderColor: colors.teal + '33' }]}>
+            <View style={[s.chip, { borderColor: colors.data + '33' }]}>
               <Text style={[s.chipIcon]}>⚡</Text>
-              <Text style={[s.chipVal, { color: colors.teal }]}>{session.totalEnergy.toFixed(1)}</Text>
+              <Text style={[s.chipVal, { color: colors.data }]}>{session.totalEnergy.toFixed(1)}</Text>
               <Text style={s.chipUnit}>Wh</Text>
             </View>
             <View style={s.chip}>
@@ -106,7 +131,7 @@ function SessionCard({ session, index, expanded, onToggle }: {
 }
 
 export default function LogsScreen() {
-  const { sessions, totalEnergyAllSessions, totalCo2Saved } = useTurbines();
+  const { sessions, totalEnergyAllSessions, totalCo2Saved, deleteSession, clearEndedSessions } = useTurbines();
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<FilterMode>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -115,8 +140,46 @@ export default function LogsScreen() {
     .filter((s) => filter === 'all' || (filter === 'active' ? s.endedAt === null : s.endedAt !== null))
     .slice().sort((a, b) => b.startedAt - a.startedAt);
 
+  const endedCount = sessions.filter((s) => s.endedAt !== null).length;
   const totalDurMin = sessions.reduce((s, x) => s + ((x.endedAt || Date.now()) - x.startedAt) / 60000, 0);
   const peakAll = sessions.reduce((m, s) => Math.max(m, s.peakPower), 0);
+
+  const handleDeleteSession = (session: Session) => {
+    Alert.alert(
+      'Supprimer la session ?',
+      `"${session.turbineName}" — ${formatDate(session.startedAt)}\n\nCette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            if (expandedId === session.id) setExpandedId(null);
+            deleteSession(session.id);
+          },
+        },
+      ],
+    );
+  };
+
+  const handleClearAll = () => {
+    if (endedCount === 0) return;
+    Alert.alert(
+      'Vider l\'historique ?',
+      `${endedCount} session${endedCount > 1 ? 's' : ''} terminée${endedCount > 1 ? 's' : ''} seront supprimées.\n\nLes sessions en cours ne sont pas affectées.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Vider les logs',
+          style: 'destructive',
+          onPress: () => {
+            setExpandedId(null);
+            clearEndedSessions();
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={s.root}>
@@ -128,16 +191,26 @@ export default function LogsScreen() {
             <Text style={s.headerSub}>Historique</Text>
             <Text style={s.headerTitle}>Sessions</Text>
           </View>
-          <View style={s.headerBadge}>
-            <Text style={s.headerBadgeTxt}>{sessions.length}</Text>
+          <View style={s.headerRight}>
+            <View style={s.headerBadge}>
+              <Text style={s.headerBadgeTxt}>{sessions.length}</Text>
+            </View>
+            {endedCount > 0 && (
+              <Animated.View entering={FadeIn.duration(300)}>
+                <TouchableOpacity style={s.clearBtn} onPress={handleClearAll} activeOpacity={0.75}>
+                  <Text style={s.clearIcon}>🗑</Text>
+                  <Text style={s.clearTxt}>Vider</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
           </View>
         </Animated.View>
 
         {/* Global stats */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)} style={s.globalRow}>
-          <View style={[s.globalBox, { borderColor: colors.teal + '33' }]}>
+          <View style={[s.globalBox, { borderColor: colors.data + '33' }]}>
             <Text style={s.globalIcon}>⚡</Text>
-            <Text style={[s.globalVal, { color: colors.teal }]}>{totalEnergyAllSessions.toFixed(1)}</Text>
+            <Text style={[s.globalVal, { color: colors.data }]}>{totalEnergyAllSessions.toFixed(1)}</Text>
             <Text style={s.globalUnit}>Wh produits</Text>
           </View>
           <View style={[s.globalBox, { borderColor: colors.success + '33' }]}>
@@ -188,6 +261,7 @@ export default function LogsScreen() {
               index={i}
               expanded={expandedId === session.id}
               onToggle={() => setExpandedId(expandedId === session.id ? null : session.id)}
+              onDelete={() => handleDeleteSession(session)}
             />
           ))
         )}
@@ -207,23 +281,36 @@ const s = StyleSheet.create({
     justifyContent: 'space-between', marginBottom: spacing.lg,
   },
   headerSub: { fontFamily: fontFamily.regular, fontSize: 13, color: colors.textMuted, marginBottom: 2 },
-  headerTitle: { fontFamily: fontFamily.bold, fontSize: 28, color: colors.textPrimary, letterSpacing: -0.7 },
+  headerTitle: { fontFamily: fontFamily.bold, fontSize: 28, color: colors.textPrimary, letterSpacing: -0.3 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 6 },
   headerBadge: {
-    backgroundColor: colors.teal20, borderRadius: radius.full,
-    paddingHorizontal: 12, paddingVertical: 6, marginTop: 6,
-    borderWidth: 1, borderColor: colors.borderTeal,
+    backgroundColor: colors.blue10, borderRadius: radius.full,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.borderBlue,
   },
-  headerBadgeTxt: { fontFamily: fontFamily.monoBold, fontSize: 14, color: colors.teal },
+  headerBadgeTxt: { fontFamily: fontFamily.monoBold, fontSize: 14, color: colors.blue },
+
+  clearBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: colors.danger10, borderRadius: radius.full,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.danger + '40',
+  },
+  clearIcon: { fontSize: 13 },
+  clearTxt: { fontFamily: fontFamily.semibold, fontSize: 12, color: colors.danger },
 
   globalRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
   globalBox: {
     flex: 1, backgroundColor: colors.bgSurface,
     borderWidth: 1, borderColor: colors.border,
+    borderTopColor: 'rgba(255,255,255,0.9)',
     borderRadius: radius.md, padding: spacing.sm,
     alignItems: 'center', gap: 2,
+    shadowColor: colors.blue, shadowOpacity: 0.08, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   globalIcon: { fontSize: 16 },
-  globalVal: { fontFamily: fontFamily.monoBold, fontSize: 16, color: colors.textPrimary, letterSpacing: -0.5 },
+  globalVal: { fontFamily: fontFamily.monoBold, fontSize: 20, color: colors.textPrimary, letterSpacing: 0 },
   globalUnit: { fontFamily: fontFamily.medium, fontSize: 8, letterSpacing: 1, color: colors.textMuted, textTransform: 'uppercase' },
 
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
@@ -233,49 +320,62 @@ const s = StyleSheet.create({
     borderRadius: radius.full, backgroundColor: colors.bgSurface,
     borderWidth: 1, borderColor: colors.border,
   },
-  filterBtnActive: { borderColor: colors.teal, backgroundColor: colors.teal10 },
+  filterBtnActive: { borderColor: colors.blue, backgroundColor: colors.blue10 },
   filterIcon: { fontSize: 11 },
   filterTxt: { fontFamily: fontFamily.medium, fontSize: 12, color: colors.textSecondary },
-  filterTxtActive: { color: colors.teal },
+  filterTxtActive: { color: colors.blue, fontFamily: fontFamily.semibold },
   filterCount: { fontFamily: fontFamily.regular, fontSize: 11, color: colors.textMuted, marginLeft: 'auto' },
 
   card: {
     backgroundColor: colors.bgSurface,
     borderWidth: 1, borderColor: colors.border,
+    borderTopColor: 'rgba(255,255,255,0.9)',
     borderRadius: radius.lg, marginBottom: spacing.md,
     overflow: 'hidden',
+    shadowColor: colors.blue, shadowOpacity: 0.08, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
-  cardBar: { height: 3 },
+  cardBar: { height: 4 },
   cardBody: { padding: spacing.lg },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.md },
   cardLeft: { flex: 1 },
   cardName: { fontFamily: fontFamily.semibold, fontSize: 15, color: colors.textPrimary, letterSpacing: -0.2 },
-  cardMeta: { fontFamily: fontFamily.regular, fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  cardMeta: { fontFamily: fontFamily.medium, fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  cardDur: { fontFamily: fontFamily.regular, fontSize: 10, color: colors.textMuted, marginTop: 1 },
+  cardRight: { alignItems: 'flex-end', gap: 8 },
 
   activePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: colors.success20, borderRadius: radius.full,
+    backgroundColor: colors.success10, borderRadius: radius.full,
     paddingHorizontal: 9, paddingVertical: 4,
     borderWidth: 1, borderColor: colors.success + '40',
   },
   activeDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.success },
-  activeTxt: { fontFamily: fontFamily.bold, fontSize: 8, color: colors.success, letterSpacing: 1 },
+  activeTxt: { fontFamily: fontFamily.bold, fontSize: 8, color: colors.textInverse, letterSpacing: 1, backgroundColor: colors.success, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, overflow: 'hidden' },
 
   endedPill: {
-    backgroundColor: colors.bgElevated, borderRadius: radius.full,
+    backgroundColor: colors.bgInset, borderRadius: radius.full,
     paddingHorizontal: 9, paddingVertical: 4,
     borderWidth: 1, borderColor: colors.border,
   },
   endedTxt: { fontFamily: fontFamily.medium, fontSize: 10, color: colors.textMuted },
 
+  deleteBtn: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: colors.danger10,
+    borderWidth: 1, borderColor: colors.danger + '30',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  deleteTxt: { fontSize: 13 },
+
   chipsRow: { flexDirection: 'row', gap: 6, marginBottom: spacing.sm },
   chip: {
     flex: 1, flexDirection: 'column', alignItems: 'center', gap: 1,
-    backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.bgInset, borderWidth: 1, borderColor: colors.border,
     borderRadius: radius.sm, paddingVertical: spacing.sm,
   },
   chipIcon: { fontSize: 12 },
-  chipVal: { fontFamily: fontFamily.monoBold, fontSize: 13, color: colors.textPrimary, letterSpacing: -0.3 },
+  chipVal: { fontFamily: fontFamily.monoBold, fontSize: 13, color: colors.textPrimary, letterSpacing: 0 },
   chipUnit: { fontFamily: fontFamily.medium, fontSize: 8, color: colors.textMuted, textTransform: 'uppercase' },
 
   expandHint: { fontFamily: fontFamily.regular, fontSize: 10, color: colors.textMuted, textAlign: 'center', marginTop: 4 },
@@ -283,8 +383,11 @@ const s = StyleSheet.create({
 
   emptyCard: {
     backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
+    borderTopColor: 'rgba(255,255,255,0.9)',
     borderRadius: radius.lg, padding: spacing['3xl'],
     alignItems: 'center', gap: spacing.md,
+    shadowColor: colors.blue, shadowOpacity: 0.08, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   emptyIcon: { fontSize: 40 },
   emptyTitle: { fontFamily: fontFamily.semibold, fontSize: 17, color: colors.textPrimary },

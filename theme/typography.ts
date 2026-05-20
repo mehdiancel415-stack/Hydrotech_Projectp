@@ -1,21 +1,23 @@
 // HydroTech Design System — Typography Tokens
 
 export const fontFamily = {
-  regular:     'Inter_400Regular',
-  medium:      'Inter_500Medium',
-  semibold:    'Inter_600SemiBold',
-  bold:        'Inter_700Bold',
+  light:       'Outfit_300Light',
+  regular:     'Outfit_400Regular',
+  medium:      'Outfit_400Regular',
+  semibold:    'Outfit_600SemiBold',
+  bold:        'Outfit_600SemiBold',
+  display:     'BebasNeue_400Regular',
   monoRegular: 'JetBrainsMono_400Regular',
   monoMedium:  'JetBrainsMono_500Medium',
-  monoBold:    'JetBrainsMono_700Bold',
+  monoBold:    'BebasNeue_400Regular',  // Big numbers → Bebas Neue
 } as const;
 
 export const textStyles = {
   display: {
-    fontFamily: fontFamily.bold,
+    fontFamily: fontFamily.display,
     fontSize: 32,
     lineHeight: 38,
-    letterSpacing: -0.8,
+    letterSpacing: 1,
   },
   title: {
     fontFamily: fontFamily.semibold,
@@ -55,14 +57,14 @@ export const textStyles = {
     textTransform: 'uppercase' as const,
   },
   mono: {
-    fontFamily: fontFamily.monoBold,
+    fontFamily: fontFamily.monoMedium,
     fontSize: 20,
     letterSpacing: -0.5,
   },
   monoLarge: {
-    fontFamily: fontFamily.monoBold,
-    fontSize: 48,
-    letterSpacing: -2,
-    lineHeight: 52,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 56,
+    letterSpacing: 2,
+    lineHeight: 60,
   },
 } as const;

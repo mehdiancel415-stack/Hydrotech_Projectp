@@ -192,7 +192,7 @@ export default function LiveScreen() {
           {/* Orbe */}
           <View style={s.emptyOrb}>
             <Svg width={52} height={52} viewBox="0 0 24 24">
-              <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill={colors.teal} />
+              <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill={colors.blue} />
             </Svg>
           </View>
           <Text style={s.emptyTitle}>Aucune turbine</Text>
@@ -230,7 +230,10 @@ export default function LiveScreen() {
             <Text style={s.headerTitle}>HydroTech Live</Text>
           </View>
           <View style={s.headerRight}>
-            <View style={[s.statusPill, { borderColor: statusColor + '40', backgroundColor: statusColor + '12' }]}>
+            <View style={[s.statusPill, {
+              borderColor: active ? colors.success + '60' : colors.borderMedium,
+              backgroundColor: active ? colors.success10 : colors.bgInset,
+            }]}>
               <View style={[s.statusDot, { backgroundColor: statusColor }]} />
               <Text style={[s.statusTxt, { color: statusColor }]}>{statusLabel}</Text>
             </View>
@@ -243,8 +246,10 @@ export default function LiveScreen() {
 
         {/* ─── HERO CARD ─────────────────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)} style={s.heroCard}>
-          {/* Gradient band en haut */}
-          <View style={s.heroBand} />
+          {/* Barre de puissance dynamique */}
+          <View style={s.heroBandTrack}>
+            <View style={[s.heroBandFill, { width: `${Math.min(100, (active?.power ?? 0))}%` as any }]} />
+          </View>
 
           <View style={s.heroBody}>
             <View style={s.heroLeft}>
@@ -283,10 +288,10 @@ export default function LiveScreen() {
               label="Énergie produite"
               value={currentSession?.totalEnergy.toFixed(1) ?? '0.0'}
               unit="Wh"
-              color={colors.teal}
+              color={colors.data}
             />
             <View style={s.statsDivider} />
-            <StatBox label="Durée" value={sessionStr} />
+            <StatBox label="Durée" value={sessionStr} color={colors.textPrimary} />
             <View style={s.statsDivider} />
             <StatBox
               label="CO₂ évité"
@@ -367,8 +372,8 @@ const s = StyleSheet.create({
     color: colors.textMuted, marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: fontFamily.bold, fontSize: 24,
-    color: colors.textPrimary, letterSpacing: -0.5,
+    fontFamily: fontFamily.display, fontSize: 32,
+    color: colors.textPrimary, letterSpacing: 0.5,
   },
   headerRight: { paddingTop: 4 },
   statusPill: {
@@ -382,16 +387,27 @@ const s = StyleSheet.create({
   // Hero
   heroCard: {
     backgroundColor: colors.bgSurface,
-    borderWidth: 1, borderColor: colors.border,
-    borderRadius: radius.xl, overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderTopColor: 'rgba(255,255,255,0.9)',
+    borderRadius: radius.xl,
+    overflow: 'hidden',
     marginBottom: spacing.md,
-    shadowColor: colors.teal, shadowOpacity: 0.08, shadowRadius: 20,
-    shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    shadowColor: colors.blue,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
-  heroBand: {
-    height: 3,
-    backgroundColor: colors.teal,
-    opacity: 0.7,
+  heroBandTrack: {
+    height: 6,
+    backgroundColor: colors.bgInset,
+    overflow: 'hidden',
+  },
+  heroBandFill: {
+    height: '100%',
+    backgroundColor: colors.blue,
+    borderRadius: 0,
   },
   heroBody: {
     flexDirection: 'row', alignItems: 'center',
@@ -405,16 +421,16 @@ const s = StyleSheet.create({
   },
   heroPowerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
   heroPower: {
-    fontFamily: fontFamily.monoBold, fontSize: 62,
-    color: colors.textPrimary, letterSpacing: -4, lineHeight: 66,
+    fontFamily: fontFamily.monoBold, fontSize: 72,
+    color: colors.data, letterSpacing: 2, lineHeight: 76,
   },
   heroWatts: {
-    fontFamily: fontFamily.semibold, fontSize: 20,
-    color: colors.textSecondary, marginBottom: 10,
+    fontFamily: fontFamily.semibold, fontSize: 24,
+    color: colors.textSecondary, marginBottom: 12,
   },
   heroTagRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   heroTag: {
-    backgroundColor: colors.bgElevated, borderRadius: radius.sm,
+    backgroundColor: colors.bgInset, borderRadius: radius.sm,
     paddingHorizontal: 10, paddingVertical: 4,
     borderWidth: 1, borderColor: colors.border,
   },
@@ -425,8 +441,8 @@ const s = StyleSheet.create({
   },
 
   // Arc
-  arcNum: { fontFamily: fontFamily.monoBold, fontSize: 26, letterSpacing: -1 },
-  arcPct: { fontSize: 14, letterSpacing: 0 },
+  arcNum: { fontFamily: fontFamily.monoBold, fontSize: 30, letterSpacing: 0 },
+  arcPct: { fontSize: 16, letterSpacing: 0 },
   arcLbl: {
     fontFamily: fontFamily.medium, fontSize: 10, letterSpacing: 0.8,
     color: colors.textMuted, textTransform: 'uppercase',
@@ -437,7 +453,10 @@ const s = StyleSheet.create({
   metCard: {
     flex: 1, backgroundColor: colors.bgSurface,
     borderWidth: 1, borderRadius: radius.lg,
+    borderTopColor: 'rgba(255,255,255,0.9)',
     padding: spacing.md, alignItems: 'center', gap: 4,
+    shadowColor: colors.blue, shadowOpacity: 0.08, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   metIcon: {
     width: 36, height: 36, borderRadius: radius.sm,
@@ -448,24 +467,27 @@ const s = StyleSheet.create({
     fontFamily: fontFamily.semibold, fontSize: 9, letterSpacing: 1.2,
     color: colors.textMuted, textTransform: 'uppercase',
   },
-  metVal: { fontFamily: fontFamily.monoBold, fontSize: 20, letterSpacing: -0.5 },
+  metVal: { fontFamily: fontFamily.monoBold, fontSize: 22, letterSpacing: 0.5 },
   metUnit: { fontFamily: fontFamily.medium, fontSize: 10, color: colors.textMuted },
 
   // Stats
   statsCard: {
     backgroundColor: colors.bgSurface,
     borderWidth: 1, borderColor: colors.border,
+    borderTopColor: 'rgba(255,255,255,0.9)',
     borderRadius: radius.lg, padding: spacing.lg,
     marginBottom: spacing.md,
+    shadowColor: colors.blue, shadowOpacity: 0.08, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   sectionTitle: {
-    fontFamily: fontFamily.semibold, fontSize: 13,
+    fontFamily: fontFamily.display, fontSize: 18, letterSpacing: 0.5,
     color: colors.textPrimary, marginBottom: spacing.md,
   },
   sectionSub: { fontFamily: fontFamily.regular, fontSize: 11, color: colors.textMuted },
   statsRow: { flexDirection: 'row', alignItems: 'center' },
   statBox: { flex: 1, alignItems: 'center', gap: 4 },
-  statVal: { fontFamily: fontFamily.monoBold, fontSize: 22, color: colors.textPrimary, letterSpacing: -0.5 },
+  statVal: { fontFamily: fontFamily.monoBold, fontSize: 26, color: colors.textPrimary, letterSpacing: 1 },
   statUnit: { fontSize: 12, color: colors.textSecondary },
   statLabel: { fontFamily: fontFamily.medium, fontSize: 10, color: colors.textMuted, letterSpacing: 1, textTransform: 'uppercase' },
   statsDivider: { width: 1, height: 40, backgroundColor: colors.border },
@@ -474,19 +496,23 @@ const s = StyleSheet.create({
   battCard: {
     backgroundColor: colors.bgSurface,
     borderWidth: 1, borderColor: colors.border,
+    borderTopColor: 'rgba(255,255,255,0.9)',
     borderRadius: radius.lg, padding: spacing.lg,
     marginBottom: spacing.md,
+    shadowColor: colors.blue, shadowOpacity: 0.08, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   battHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.md },
   addBtn: {
-    backgroundColor: colors.teal20,
-    borderWidth: 1, borderColor: colors.borderTeal,
+    backgroundColor: colors.blue,
     borderRadius: radius.full, paddingHorizontal: 14, paddingVertical: 7,
+    shadowColor: colors.blue, shadowOpacity: 0.32, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
-  addBtnTxt: { fontFamily: fontFamily.semibold, fontSize: 12, color: colors.teal },
+  addBtnTxt: { fontFamily: fontFamily.semibold, fontSize: 12, color: colors.textInverse },
   battEmpty: { paddingVertical: spacing.xl, alignItems: 'center', gap: spacing.sm },
   battEmptyIcon: { fontSize: 28 },
-  battEmptyTxt: { fontFamily: fontFamily.regular, fontSize: 13, color: colors.textMuted, textAlign: 'center' },
+  battEmptyTxt: { fontFamily: fontFamily.light, fontSize: 13, color: colors.textMuted, textAlign: 'center' },
 
   // Disconnect
   disconnectBtn: { paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
@@ -499,22 +525,22 @@ const s = StyleSheet.create({
   },
   emptyOrb: {
     width: 96, height: 96, borderRadius: 48,
-    backgroundColor: colors.teal10,
-    borderWidth: 1, borderColor: colors.borderTeal,
+    backgroundColor: colors.blue10,
+    borderWidth: 1, borderColor: colors.borderBlue,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.teal, shadowOpacity: 0.3, shadowRadius: 28, elevation: 10,
+    shadowColor: colors.blue, shadowOpacity: 0.3, shadowRadius: 28, elevation: 10,
     marginBottom: spacing.sm,
   },
-  emptyTitle: { fontFamily: fontFamily.bold, fontSize: 22, color: colors.textPrimary, letterSpacing: -0.4 },
+  emptyTitle: { fontFamily: fontFamily.display, fontSize: 32, color: colors.textPrimary, letterSpacing: 0.5 },
   emptyBody: {
-    fontFamily: fontFamily.regular, fontSize: 14, color: colors.textSecondary,
+    fontFamily: fontFamily.light, fontSize: 14, color: colors.textSecondary,
     textAlign: 'center', lineHeight: 22,
   },
   emptyBtn: {
-    backgroundColor: colors.teal, borderRadius: radius.lg,
+    backgroundColor: colors.blue, borderRadius: radius.lg,
     paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg, marginTop: spacing.sm,
-    shadowColor: colors.teal, shadowOpacity: 0.45, shadowRadius: 20,
+    shadowColor: colors.blue, shadowOpacity: 0.45, shadowRadius: 20,
     shadowOffset: { width: 0, height: 6 }, elevation: 12,
   },
-  emptyBtnTxt: { fontFamily: fontFamily.semibold, fontSize: 15, color: colors.bgBase },
+  emptyBtnTxt: { fontFamily: fontFamily.semibold, fontSize: 15, color: colors.textInverse },
 });

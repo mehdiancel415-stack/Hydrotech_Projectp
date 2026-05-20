@@ -53,6 +53,8 @@ type ContextValue = {
   sessions: Session[];
   totalEnergyAllSessions: number;
   totalCo2Saved: number;
+  deleteSession: (id: string) => void;
+  clearEndedSessions: () => void;
 };
 
 const TurbinesContext = createContext<ContextValue | null>(null);
@@ -204,6 +206,24 @@ export function TurbinesProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  // ── deleteSession ──────────────────────────────────────────────────────────
+  const deleteSession = useCallback((id: string) => {
+    setSessions((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      scheduleSaveSessions(next);
+      return next;
+    });
+  }, [scheduleSaveSessions]);
+
+  // ── clearEndedSessions ─────────────────────────────────────────────────────
+  const clearEndedSessions = useCallback(() => {
+    setSessions((prev) => {
+      const next = prev.filter((s) => s.endedAt === null);
+      scheduleSaveSessions(next);
+      return next;
+    });
+  }, [scheduleSaveSessions]);
+
   const currentSession =
     sessions.find((s) => s.turbineId === activeTurbineId && s.endedAt === null) ?? null;
   const totalEnergyAllSessions = sessions.reduce((sum, s) => sum + s.totalEnergy, 0);
@@ -215,6 +235,7 @@ export function TurbinesProvider({ children }: { children: React.ReactNode }) {
       addTurbine, removeTurbine, updateTurbineData,
       updateBatteries, setBatteryPct,
       currentSession, sessions, totalEnergyAllSessions, totalCo2Saved,
+      deleteSession, clearEndedSessions,
     }}>
       {children}
     </TurbinesContext.Provider>

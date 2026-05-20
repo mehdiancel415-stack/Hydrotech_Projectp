@@ -2,62 +2,64 @@ import { Platform } from 'react-native';
 
 // Re-export design system tokens so old imports keep working
 export { colors } from '../theme/colors';
-export { fontFamily, textStyles } from '../theme/typography';
+export { textStyles } from '../theme/typography';
 export { spacing as spacingScale, radius as radiusScale, shadow } from '../theme/spacing';
 
 // ─── Unified theme object (used by all components via `theme.X`) ───────────
 
 export const theme = {
   // Backgrounds
-  bg:          '#090E1A',
-  bgCard:      '#0F1629',
-  bgElevated:  '#161E35',
-  bgInset:     '#060A14',
-  bgChip:      '#161E35',
+  bg:          '#F0F4F8',
+  bgCard:      '#FAFCFF',
+  bgElevated:  '#FFFFFF',
+  bgInset:     '#E8EDF5',
+  bgChip:      '#EEF2F8',
 
   // Borders
-  border:       'rgba(255,255,255,0.06)',
-  borderSoft:   'rgba(255,255,255,0.04)',
-  borderStrong: 'rgba(255,255,255,0.12)',
-  borderAccent: 'rgba(0,212,180,0.25)',
+  border:       '#CBD5E1',
+  borderSoft:   '#E2E8F0',
+  borderStrong: '#94A3B8',
+  borderAccent: 'rgba(27,79,155,0.25)',
 
-  // Primary accent — teal électrique
-  primary:    '#3B82F6',
-  primaryDim: 'rgba(59,130,246,0.12)',
-  accent:     '#00D4B4',
-  accentSoft: 'rgba(0,212,180,0.12)',
-  cyan:       '#00D4B4',
+  // Primary accent — navy
+  primary:    '#1B4F9B',
+  primaryDim: 'rgba(27,79,155,0.10)',
+  accent:     '#2563C4',
+  accentSoft: 'rgba(37,99,196,0.10)',
+  cyan:       '#0EA5E9',
 
   // Glows
-  glowBlue:  'rgba(59,130,246,0.22)',
-  glowGreen: 'rgba(0,212,180,0.22)',
+  glowBlue:  'rgba(27,79,155,0.12)',
+  glowGreen: 'rgba(22,163,74,0.12)',
 
   // Status
-  success:     '#22C55E',
-  successDim:  'rgba(34,197,94,0.12)',
-  successBright:'#4ADE80',
-  warning:     '#F59E0B',
-  warningDim:  'rgba(245,158,11,0.12)',
-  danger:      '#EF4444',
-  dangerDim:   'rgba(239,68,68,0.12)',
+  success:      '#16A34A',
+  successDim:   'rgba(22,163,74,0.10)',
+  successBright:'#22C55E',
+  warning:      '#D97706',
+  warningDim:   'rgba(217,119,6,0.10)',
+  danger:       '#DC2626',
+  dangerDim:    'rgba(220,38,38,0.10)',
 
   // Text
-  textPrimary:   '#F0F4FF',
-  textSecondary: '#8B9CC8',
-  textMuted:     '#4A5578',
-  textInverse:   '#090E1A',
+  textPrimary:   '#0F172A',
+  textSecondary: '#64748B',
+  textMuted:     '#94A3B8',
+  textInverse:   '#F0F4F8',
 } as const;
 
 // ─── Font families ──────────────────────────────────────────────────────────
 
 export const fontFamily = {
-  regular:     'Inter_400Regular',
-  medium:      'Inter_500Medium',
-  semibold:    'Inter_600SemiBold',
-  bold:        'Inter_700Bold',
+  light:       'Outfit_300Light',
+  regular:     'Outfit_400Regular',
+  medium:      'Outfit_400Regular',
+  semibold:    'Outfit_600SemiBold',
+  bold:        'Outfit_600SemiBold',
+  display:     'BebasNeue_400Regular',
   monoRegular: 'JetBrainsMono_400Regular',
   monoMedium:  'JetBrainsMono_500Medium',
-  monoBold:    'JetBrainsMono_700Bold',
+  monoBold:    'BebasNeue_400Regular',
 } as const;
 
 // ─── Spacing & radius ───────────────────────────────────────────────────────
@@ -70,25 +72,20 @@ export const radius = {
   xs: 6, sm: 10, md: 14, lg: 20, xl: 28, full: 9999,
 } as const;
 
-export const shadow = {
-  card: { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  teal: { shadowColor: '#00D4B4', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-} as const;
-
 // ─── Gradients ──────────────────────────────────────────────────────────────
 
 export const gradients = {
-  power:     ['#3B82F6', '#00D4B4'],
-  battery:   ['#22C55E', '#00D4B4'],
-  warning:   ['#F59E0B', '#EF4444'],
-  powerSoft: ['#1e3a5f', '#0a3d34'],
+  power:     ['#1B4F9B', '#2563C4'],
+  battery:   ['#16A34A', '#2563C4'],
+  warning:   ['#D97706', '#DC2626'],
+  powerSoft: ['#EEF2F8', '#E0EAFB'],
 } as const;
 
 // ─── Expo template compat ───────────────────────────────────────────────────
 
 export const Colors = {
-  light:  { text: '#11181C', background: '#fff', tint: '#0a7ea4', icon: '#687076', tabIconDefault: '#687076', tabIconSelected: '#0a7ea4' },
-  dark:   { text: '#ECEDEE', background: '#090E1A', tint: '#00D4B4', icon: '#9BA1A6', tabIconDefault: '#9BA1A6', tabIconSelected: '#fff' },
+  light:  { text: '#0F172A', background: '#F0F4F8', tint: '#1B4F9B', icon: '#64748B', tabIconDefault: '#94A3B8', tabIconSelected: '#1B4F9B' },
+  dark:   { text: '#0F172A', background: '#F0F4F8', tint: '#1B4F9B', icon: '#64748B', tabIconDefault: '#94A3B8', tabIconSelected: '#1B4F9B' },
 };
 
 export const Fonts = Platform.select({
