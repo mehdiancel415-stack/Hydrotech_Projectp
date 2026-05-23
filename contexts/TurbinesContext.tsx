@@ -20,7 +20,7 @@ export type Turbine = {
   power: number;
   voltage?: number;
   current?: number;
-  flowRate: number;
+  battery?: number;
   energy: number;
   connectedAt: string;
   location: { latitude: number; longitude: number } | null;
@@ -46,7 +46,7 @@ type ContextValue = {
   setActiveTurbineId: (id: number | string) => void;
   addTurbine: (t: Omit<Turbine, 'energy' | 'powerHistory'>) => void;
   removeTurbine: (id: number | string) => void;
-  updateTurbineData: (id: number | string, data: { power?: number; voltage?: number; current?: number }) => void;
+  updateTurbineData: (id: number | string, data: { power?: number; voltage?: number; current?: number; battery?: number }) => void;
   updateBatteries: (turbineId: number | string, batteries: Battery[]) => void;
   setBatteryPct: (turbineId: number | string, batteryId: number, pct: number) => void;
   currentSession: Session | null;
@@ -63,7 +63,6 @@ export function TurbinesProvider({ children }: { children: React.ReactNode }) {
   const [turbines, setTurbines] = useState<Turbine[]>([]);
   const [activeTurbineId, setActiveTurbineId] = useState<number | string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  // Debounce refs pour éviter les write storms sur AsyncStorage
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -151,23 +150,21 @@ export function TurbinesProvider({ children }: { children: React.ReactNode }) {
   // ── updateTurbineData — appelé depuis BLE ─────────────────────────────────
   const updateTurbineData = useCallback((
     id: number | string,
-    data: { power?: number; voltage?: number; current?: number },
+    data: { power?: number; voltage?: number; current?: number; battery?: number },
   ) => {
-    const now = Date.now();
     setTurbines((prev) =>
       prev.map((t) => {
         if (t.id !== id) return t;
         const newPower = data.power ?? t.power;
-        const history = [...(t.powerHistory ?? []), newPower].slice(-60); // max 60 points
+        const history = [...(t.powerHistory ?? []), newPower].slice(-60);
         return { ...t, ...data, power: newPower, powerHistory: history };
       }),
     );
-    // Met aussi à jour la session en cours
     setSessions((prev) =>
       prev.map((s) => {
         if (s.turbineId !== id || s.endedAt !== null || data.power === undefined) return s;
         const p = data.power;
-        const dtHours = 1 / 120; // ~30s interval assumed
+        const dtHours = 1 / 120;
         const newEnergy = s.totalEnergy + p * dtHours;
         return {
           ...s,
