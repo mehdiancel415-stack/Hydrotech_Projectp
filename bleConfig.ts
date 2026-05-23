@@ -4,26 +4,31 @@ export const BLE_CONFIG = {
   DEVICE_NAME_PREFIX: 'HydroTech',
   REFRESH_INTERVAL: 10000,
 };
-
+ 
 export type TurbineData = {
   voltage: number;
   current: number;
   power: number;
+  battery: number;
 };
-
+ 
 export function parseBLEData(raw: string): TurbineData | null {
   try {
     const data = JSON.parse(raw);
+    const voltage = parseFloat(data.voltage) || 0;
+    const current = parseFloat(data.current) || 0;
+    const batteryVoltage = parseFloat(data.battery_voltage) || 0;
     return {
-      voltage: parseFloat(data.voltage) || 0,
-      current: parseFloat(data.current) || 0,
-      power: parseFloat(data.power) || 0,
+      voltage,
+      current,
+      power: voltage * current,
+      battery: voltageToPercent(batteryVoltage, 'LiFePO4'),
     };
   } catch (e) {
     return null;
   }
 }
-
+ 
 export function voltageToPercent(voltage: number, type: string): number {
   const ranges: Record<string, [number, number]> = {
     'LiFePO4': [10.0, 13.6],
@@ -34,7 +39,7 @@ export function voltageToPercent(voltage: number, type: string): number {
   const pct = Math.round((voltage - min) / (max - min) * 100);
   return Math.min(100, Math.max(0, pct));
 }
-
+ 
 export function calcTimeRemaining(
   batteries: { capacity: number; percentage: number; type: string }[],
   current: number
