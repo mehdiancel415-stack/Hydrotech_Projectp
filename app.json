@@ -3,6 +3,10 @@
     "name": "HydroTech",
     "slug": "hydrotech",
     "version": "1.0.0",
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "icon": "./assets/images/hydro1.png",
     "scheme": "myapp",
@@ -77,9 +81,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "128898a9-11a4-4e0d-9672-2970f1ee1d3f"
+        "projectId": "125200eb-dda5-41c2-86fc-25aa96407ce8"
       }
     },
-    "owner": "Hydrotech"
+    "owner": "mehdichtong"
   }
 }
