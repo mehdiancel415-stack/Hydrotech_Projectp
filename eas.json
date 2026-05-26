@@ -3,12 +3,12 @@
     "version": ">= 18.4.0",
     "appVersionSource": "remote"
   },
+
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal"
     },
-<<<<<<< HEAD
 
     "preview": {
       "distribution": "internal",
@@ -17,24 +17,12 @@
       }
     },
 
-=======
-    "preview": {
-      "distribution": "internal"
-    },
->>>>>>> 1c21fb42bd47a388713c073bddccb4d56f951f84
     "production": {
       "autoIncrement": true
     }
   },
-<<<<<<< HEAD
 
   "submit": {
     "production": {}
   }
 }
-=======
-  "submit": {
-    "production": {}
-  }
-}
->>>>>>> 1c21fb42bd47a388713c073bddccb4d56f951f84
