@@ -1,0 +1,85 @@
+{
+  "expo": {
+    "name": "HydroTech",
+    "slug": "hydrotech",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/hydro1.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFFFFF",
+    "androidNavigationBar": {
+      "visible": "sticky-immersive",
+      "barStyle": "dark-content",
+      "backgroundColor": "#F0F4F8"
+    },
+    "splash": {
+      "image": "./assets/images/hydro1.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hydrotech.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "HydroTech utilise votre position pour trouver les cours d'eau proches.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/hydro1.png",
+        "monochromeImage": "./assets/images/hydro1.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.hydrotech.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/hydro1.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "HydroTech utilise votre position pour trouver les cours d'eau proches."
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [
+            "peripheral",
+            "central"
+          ],
+          "bluetoothAlwaysPermission": "HydroTech utilise le Bluetooth pour se connecter à votre turbine."
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "128898a9-11a4-4e0d-9672-2970f1ee1d3f"
+      }
+    },
+    "owner": "Hydrotech"
+  }
+}
