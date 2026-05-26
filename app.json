@@ -3,28 +3,30 @@
     "name": "HydroTech",
     "slug": "hydrotech",
     "version": "1.0.0",
-<<<<<<< HEAD
+
     "updates": {
       "enabled": true,
       "fallbackToCacheTimeout": 0
     },
-=======
->>>>>>> 1c21fb42bd47a388713c073bddccb4d56f951f84
+
     "orientation": "portrait",
     "icon": "./assets/images/hydro1.png",
     "scheme": "myapp",
     "userInterfaceStyle": "light",
     "backgroundColor": "#FFFFFF",
+
     "androidNavigationBar": {
       "visible": "sticky-immersive",
       "barStyle": "dark-content",
       "backgroundColor": "#F0F4F8"
     },
+
     "splash": {
       "image": "./assets/images/hydro1.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hydrotech.app",
@@ -33,6 +35,7 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/hydro1.png",
@@ -51,11 +54,13 @@
         "android.permission.BLUETOOTH_CONNECT"
       ]
     },
+
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/hydro1.png"
     },
+
     "plugins": [
       "expo-router",
       "expo-font",
@@ -69,31 +74,24 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "modes": [
-            "peripheral",
-            "central"
-          ],
+          "modes": ["peripheral", "central"],
           "bluetoothAlwaysPermission": "HydroTech utilise le Bluetooth pour se connecter à votre turbine."
         }
       ],
       "expo-web-browser"
     ],
+
     "experiments": {
       "typedRoutes": true
     },
+
     "extra": {
       "router": {},
       "eas": {
-<<<<<<< HEAD
         "projectId": "125200eb-dda5-41c2-86fc-25aa96407ce8"
       }
     },
+
     "owner": "mehdichtong"
-=======
-        "projectId": "128898a9-11a4-4e0d-9672-2970f1ee1d3f"
-      }
-    },
-    "owner": "hydrotech7"
->>>>>>> 1c21fb42bd47a388713c073bddccb4d56f951f84
   }
 }
