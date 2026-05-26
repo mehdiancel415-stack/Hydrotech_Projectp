@@ -15,6 +15,7 @@ type Turbine = {
   name: string;
   status: string;
   power: number;
+  current?: number; // ← ajouté : courant BLE réel
   energy: number;
   connectedAt: string;
   onDelete: (id: number | string) => void;
@@ -45,7 +46,12 @@ export default function TurbinePanel({ turbine }: Props) {
   const totalCharged = turbine.batteries.reduce((s, b) => s + b.capacity * b.percentage / 100, 0);
   const avgPct = totalCap > 0 ? totalCharged / totalCap * 100 : 0;
   const remAh = (totalCap - totalCharged).toFixed(1);
-  const totalH = turbine.power > 0 ? (totalCap - totalCharged) / (turbine.power / 12) : 0;
+
+  // ← Utilise le courant BLE réel si disponible, sinon fallback sur power/12
+  const current = turbine.current && turbine.current > 0
+    ? turbine.current
+    : turbine.power > 0 ? turbine.power / 12 : 0;
+  const totalH = current > 0 ? (totalCap - totalCharged) / current : 0;
   const etaH = Math.floor(totalH);
   const etaM = Math.round((totalH - etaH) * 60);
 
@@ -84,9 +90,13 @@ export default function TurbinePanel({ turbine }: Props) {
             <View style={styles.bigRingWrap}>
               <BatteryRing percentage={avgPct} size={90} strokeWidth={8} />
               <View style={styles.bigRingInfo}>
-                <Text style={styles.etaMain}>~{etaH}h {etaM}min</Text>
+                <Text style={styles.etaMain}>
+                  {current > 0 ? `~${etaH}h ${etaM}min` : '—'}
+                </Text>
                 <Text style={styles.etaSub}>avant charge complète</Text>
                 <Text style={styles.etaSub}>{totalCap} Ah · {remAh} Ah restants</Text>
+                {/* ← % batterie affiché explicitement */}
+                <Text style={styles.etaSub}>{avgPct.toFixed(0)}% chargé</Text>
               </View>
             </View>
 
@@ -99,9 +109,15 @@ export default function TurbinePanel({ turbine }: Props) {
                 <Text style={styles.mcLabel}>Énergie</Text>
                 <Text style={styles.mcVal}>{turbine.energy.toFixed(1)}<Text style={styles.mcUnit}> Wh</Text></Text>
               </View>
+              {/* ← Courant BLE si disponible */}
+              {turbine.current !== undefined && (
+                <View style={styles.mc}>
+                  <Text style={styles.mcLabel}>Courant</Text>
+                  <Text style={styles.mcVal}>{turbine.current.toFixed(1)}<Text style={styles.mcUnit}> A</Text></Text>
+                </View>
+              )}
             </View>
 
-            {/* GRAPHIQUE PUISSANCE TEMPS RÉEL */}
             <View style={styles.chartCard}>
               <PowerChart
                 history={turbine.powerHistory || []}
