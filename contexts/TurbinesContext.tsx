@@ -26,6 +26,7 @@ export type Turbine = {
   location: { latitude: number; longitude: number } | null;
   batteries: Battery[];
   powerHistory: number[];
+  timeRemaining?: { hours: number; minutes: number };
 };
 
 export type Session = {
