@@ -1,16 +1,16 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import type { BleManager as BleManagerType, Device } from 'react-native-ble-plx';
 import { BLE_CONFIG, parseBLEData, TurbineData } from './bleConfig';
- 
+
 let manager: BleManagerType | null = null;
- 
+
 function getManager(): BleManagerType | null {
   if (manager) return manager;
   const { BleManager } = require('react-native-ble-plx');
   manager = new BleManager();
   return manager;
 }
- 
+
 function decodeBase64Utf8(b64: string): string {
   try {
     const binary = atob(b64);
@@ -26,7 +26,7 @@ function decodeBase64Utf8(b64: string): string {
     return '';
   }
 }
- 
+
 export async function requestBLEPermissions(): Promise<boolean> {
   if (Platform.OS === 'android') {
     const grants = await PermissionsAndroid.requestMultiple([
@@ -40,7 +40,7 @@ export async function requestBLEPermissions(): Promise<boolean> {
   }
   return true;
 }
- 
+
 export async function scanForTurbines(
   onFound: (device: Device) => void,
   onError: (error: string) => void,
@@ -48,13 +48,13 @@ export async function scanForTurbines(
 ): Promise<void> {
   const m = getManager();
   if (!m) return;
- 
+
   const hasPermission = await requestBLEPermissions();
   if (!hasPermission) {
     onError('Permissions Bluetooth refusées');
     return;
   }
- 
+
   m.startDeviceScan(null, null, (error, device) => {
     if (error) {
       onError(error.message);
@@ -64,12 +64,12 @@ export async function scanForTurbines(
       onFound(device);
     }
   });
- 
+
   setTimeout(() => {
     getManager()?.stopDeviceScan();
   }, timeoutMs);
 }
- 
+
 export async function connectToTurbine(
   device: Device,
   onData: (data: TurbineData) => void,
@@ -78,20 +78,20 @@ export async function connectToTurbine(
 ): Promise<Device | null> {
   const m = getManager();
   if (!m) return null;
- 
+
   try {
     const connected = await device.connect();
- 
+
     try {
       await connected.requestMTU(247);
     } catch (e) {
       console.warn('[BLE] Échec négociation MTU', e);
     }
- 
+
     await connected.discoverAllServicesAndCharacteristics();
- 
+
     connected.onDisconnected(() => onDisconnect());
- 
+
     connected.monitorCharacteristicForService(
       BLE_CONFIG.SERVICE_UUID,
       BLE_CONFIG.CHARACTERISTIC_UUID,
@@ -103,22 +103,23 @@ export async function connectToTurbine(
         if (characteristic?.value) {
           const raw = decodeBase64Utf8(characteristic.value);
           const data = parseBLEData(raw);
-          if (data) onData(data);
+          if (data) {
+            console.log('[BLE] Données reçues:', data); // ← utile pour debug
+            onData(data);
+          }
         }
       }
     );
- 
+
     return connected;
   } catch (e: any) {
     onError(e.message || 'Erreur de connexion');
     return null;
   }
 }
- 
+
 export async function disconnectTurbine(device: Device): Promise<void> {
   try {
     await device.cancelConnection();
   } catch (e) {}
-}
-  }
 }
