@@ -10,6 +10,7 @@ export type TurbineData = {
   current: number;
   power: number;
   battery: number;
+  timeRemaining?: { hours: number; minutes: number };
 };
  
 export function parseBLEData(raw: string): TurbineData | null {
